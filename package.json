@@ -1,0 +1,35 @@
+{
+  "name": "saas-dash",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gauthamgtg/saas-dash.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/gauthamgtg/saas-dash/issues"
+  },
+  "homepage": "https://github.com/gauthamgtg/saas-dash#readme",
+  "dependencies": {
+    "papaparse": "^5.5.4",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "@types/papaparse": "^5.5.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}
