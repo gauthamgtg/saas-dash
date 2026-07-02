@@ -1,33 +1,50 @@
 'use client'
 import { useApp, type ViewId } from '@/src/state/AppContext'
 
-const ITEMS: { id: ViewId; label: string }[] = [
-  { id: 'overview', label: 'Overview' }, { id: 'growth', label: 'Growth' },
-  { id: 'trends', label: 'Trends' }, { id: 'cohorts', label: 'Cohorts' },
-  { id: 'segments', label: 'Segments' }, { id: 'customers', label: 'Customers' },
-  { id: 'health', label: 'Customer Health' }, { id: 'bins', label: 'Revenue Bins' },
+const ITEMS: { id: ViewId; label: string; idx: string; group: string }[] = [
+  { id: 'briefing', label: 'Executive Briefing', idx: '00', group: 'Executive' },
+  { id: 'overview', label: 'Overview', idx: '01', group: 'Analysis' },
+  { id: 'growth', label: 'Growth', idx: '02', group: 'Analysis' },
+  { id: 'trends', label: 'Trends', idx: '03', group: 'Analysis' },
+  { id: 'cohorts', label: 'Cohorts', idx: '04', group: 'Analysis' },
+  { id: 'segments', label: 'Segments', idx: '05', group: 'Analysis' },
+  { id: 'customers', label: 'Customers', idx: '06', group: 'Analysis' },
+  { id: 'health', label: 'Customer Health', idx: '07', group: 'Analysis' },
+  { id: 'bins', label: 'Revenue Bins', idx: '08', group: 'Analysis' },
 ]
 
 export function Sidebar() {
   const { state, dispatch } = useApp()
   return (
-    <nav className="flex w-56 shrink-0 flex-col gap-0.5 border-r border-line bg-paper p-4">
-      <div className="mb-7 px-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-soft">Revenue</div>
-        <div className="font-display text-xl font-bold tracking-tight text-ink">Ledger</div>
+    <nav className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-line bg-paper/70 px-3 py-5 backdrop-blur">
+      <div className="mb-7 flex items-center gap-2.5 px-2">
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent font-display text-lg font-bold text-bone shadow-card">L</div>
+        <div>
+          <div className="font-display text-[15px] font-bold leading-none tracking-tight text-ink">Ledger</div>
+          <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.28em] text-ink-soft">Revenue Terminal</div>
+        </div>
       </div>
-      {ITEMS.map((it, idx) => {
-        const active = state.view === it.id
-        return (
-          <button key={it.id} onClick={() => dispatch({ type: 'setView', view: it.id })}
-            className={`flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors ${active ? 'bg-navy text-white' : 'text-ink-soft hover:bg-bone hover:text-ink'}`}>
-            <span className={`font-mono text-[10px] tabular-nums ${active ? 'text-white/60' : 'text-ink-faint'}`}>{String(idx + 1).padStart(2, '0')}</span>
-            {it.label}
-          </button>
-        )
-      })}
+
+      {['Executive', 'Analysis'].map((group) => (
+        <div key={group} className="mb-2">
+          <div className="px-2 py-1.5 font-mono text-[9px] uppercase tracking-[0.3em] text-ink-faint">{group}</div>
+          {ITEMS.filter((it) => it.group === group).map((it) => {
+            const active = state.view === it.id
+            return (
+              <button key={it.id} onClick={() => dispatch({ type: 'setView', view: it.id })}
+                className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                  active ? 'bg-paper-2 text-ink' : 'text-ink-soft hover:bg-paper-2/60 hover:text-ink'}`}>
+                {active && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent" />}
+                <span className={`font-mono text-[10px] tabular-nums ${active ? 'text-accent' : 'text-ink-faint'}`}>{it.idx}</span>
+                {it.label}
+              </button>
+            )
+          })}
+        </div>
+      ))}
+
       <button onClick={() => dispatch({ type: 'reset' })}
-        className="mt-auto px-3 py-2 text-left font-mono text-[11px] uppercase tracking-wider text-ink-faint hover:text-ink">
+        className="mt-auto flex items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-[11px] uppercase tracking-wider text-ink-faint transition-colors hover:bg-paper-2 hover:text-ink">
         ↺ New upload
       </button>
     </nav>
