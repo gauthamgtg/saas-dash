@@ -2,11 +2,12 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
-import { buildMatrix, binAnalysis, binSeries } from '@/src/lib/engine'
+import { buildMatrix, binAnalysis, binSeries, gini, paretoConcentration, hhi } from '@/src/lib/engine'
 import type { BinDef } from '@/src/lib/types'
 import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { BarsChart } from '@/src/components/ui/BarsChart'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
+import { KpiCard } from '@/src/components/ui/KpiCard'
 import { CHART } from '@/src/lib/theme'
 import { fmtMoney, fmtPct, fmtNum } from '@/src/lib/format'
 import type { BinRow } from '@/src/lib/engine'
@@ -43,6 +44,13 @@ export function Bins() {
   return (
     <div className="space-y-5">
       <ViewHeader index="06" kicker="Distribution" title="Revenue Bins" sub="Customers bucketed by monthly revenue — bins are fully editable" />
+
+      <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4 [&>*]:border-0">
+        <KpiCard label="Revenue Gini" value={gini(txs) == null ? '—' : gini(txs)!.toFixed(3)} hint="0 equal … 1 concentrated" />
+        <KpiCard label="Top-20% share" value={fmtPct(paretoConcentration(txs).top20Share)} />
+        <KpiCard label="Customers to 80%" value={fmtPct(paretoConcentration(txs).customersToEightyPct)} hint="fewer = whale-heavy" />
+        <KpiCard label="Customer HHI" value={fmtNum(Math.round(hhi(txs)))} />
+      </div>
 
       <section className="border border-line bg-paper p-4">
         <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Bin thresholds (min &lt; value ≤ max; blank max = open top)</div>

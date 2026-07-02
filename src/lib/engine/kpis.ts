@@ -1,4 +1,5 @@
 import type { Matrix } from '../types'
+import type { Movement } from './movement'
 import { get, mrrOf, activeCustomers } from './matrix'
 import { addMonths, monthDiff } from '../types'
 
@@ -59,4 +60,38 @@ export function avgLifetimeMonths(monthlyChurnRate: number): number | null {
 /** Revenue LTV = ARPA * grossMargin / monthlyChurnRate. */
 export function ltvRevenue(arpaMonthly: number, grossMargin: number, monthlyChurnRate: number): number | null {
   return monthlyChurnRate > 0 ? (arpaMonthly * grossMargin) / monthlyChurnRate : null
+}
+
+/** SaaS quick ratio over a movement series: (new+expansion+reactivation)/(churn+contraction). */
+export function quickRatio(series: Movement[]): number | null {
+  let inflow = 0, outflow = 0
+  for (const s of series) {
+    inflow += s.newMrr + s.expansion + s.reactivation
+    outflow += s.churn + s.contraction
+  }
+  return outflow > 0 ? inflow / outflow : null
+}
+
+/** Compound monthly growth rate of MRR from the first to the last month. */
+export function cmgr(m: Matrix): number | null {
+  if (m.months.length < 2) return null
+  const start = mrrOf(m, m.months[0])
+  const end = mrrOf(m, m.months[m.months.length - 1])
+  const n = monthDiff(m.months[0], m.months[m.months.length - 1])
+  if (start <= 0 || n < 1) return null
+  return Math.pow(end / start, 1 / n) - 1
+}
+
+/** New = each customer's first-active-month revenue; Repeat = everything after. */
+export function newVsRepeatRevenue(m: Matrix): { newRevenue: number; repeatRevenue: number } {
+  let newRevenue = 0, total = 0
+  for (const c of m.customers) {
+    let seenFirst = false
+    for (const mo of m.months) {
+      const v = get(m, c, mo)
+      total += v
+      if (v > 0 && !seenFirst) { newRevenue += v; seenFirst = true }
+    }
+  }
+  return { newRevenue, repeatRevenue: total - newRevenue }
 }
