@@ -2,7 +2,7 @@ export type Column<T> = { key: string; header: string; render: (row: T) => React
 
 export function DataTable<T>({ columns, rows }: { columns: Column<T>[]; rows: T[] }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-paper shadow-card">
+    <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-paper-2">
           <tr>

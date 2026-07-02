@@ -2,73 +2,110 @@
 import { useMemo } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters, overviewModel } from '@/src/lib/dashboard'
-import { buildMatrix, mrrOf, arpa, nrr, grr, quickRatio, movementSeries, refundBridge, refundRate, invoiceStats } from '@/src/lib/engine'
+import {
+  buildMatrix, get, mrrOf, arpa, nrr, grr, quickRatio, movementSeries,
+  refundBridge, refundRate, invoiceStats, activeCustomers,
+} from '@/src/lib/engine'
 import { addMonths } from '@/src/lib/types'
 import { KpiCard } from '@/src/components/ui/KpiCard'
 import { TrendChart } from '@/src/components/ui/TrendChart'
+import { Panel } from '@/src/components/ui/Panel'
+import { Sparkline } from '@/src/components/ui/Sparkline'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
 import { Callout } from '@/src/components/ui/Callout'
 import { CHART } from '@/src/lib/theme'
-import { fmtMoney, fmtNum, fmtPct } from '@/src/lib/format'
+import { fmtMoney, fmtMoneyShort, fmtNum, fmtPct } from '@/src/lib/format'
 
-const GRID = 'grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4 [&>*]:border-0'
+const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-4 [&>*]:border-0'
+const rel = (a: number, b: number) => (b ? (a - b) / b : null)
 
 export function Overview() {
   const { state } = useApp()
   const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
   const model = useMemo(() => overviewModel(txs, state.controls), [txs, state.controls])
 
-  const extra = useMemo(() => {
+  const d = useMemo(() => {
     const m = buildMatrix(txs, state.controls.mode)
-    const last = m.months[m.months.length - 1] ?? ''
-    const prev = addMonths(last, -1)
+    const months = m.months
+    const last = months[months.length - 1] ?? ''
+    const prev = months.length > 1 ? months[months.length - 2] : addMonths(last, -1)
+    const mrrSeries = months.map((mo) => Math.round(mrrOf(m, mo)))
+    const activeSer = months.map((mo) => activeCustomers(m, mo))
+    const mrrChart = months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i], ...(i >= 12 ? { 'MRR · yr ago': mrrSeries[i - 12] } : {}) }))
+    const hasGhost = mrrChart.some((r) => 'MRR · yr ago' in r)
+
+    // per-segment MRR small multiples
+    const models = [...new Set(txs.map((t) => t.businessModel ?? 'Unknown'))]
+    const segs = models.map((name) => {
+      const custs = new Set(txs.filter((t) => (t.businessModel ?? 'Unknown') === name).map((t) => t.customerId))
+      const series = months.map((mo) => Math.round([...custs].reduce((s, c) => s + get(m, c, mo), 0)))
+      return { name, series, last: series[series.length - 1], delta: rel(series[series.length - 1], series[series.length - 2] ?? 0) }
+    }).sort((a, b) => b.last - a.last)
+
     return {
-      nrr: nrr(m, prev, last), grr: grr(m, prev, last),
-      quick: quickRatio(movementSeries(m, { reactivationGapK: state.controls.reactivationGapK })),
+      mrrChart, hasGhost, mrrSeries, activeSer, segs,
+      mrrDelta: rel(mrrOf(m, last), mrrOf(m, prev)), activeDelta: rel(activeCustomers(m, last), activeCustomers(m, prev)),
+      arpaDelta: (() => { const a = arpa(m, last), b = arpa(m, prev); return a != null && b != null ? rel(a, b) : null })(),
+      nrr: nrr(m, prev, last), grr: grr(m, prev, last), quick: quickRatio(movementSeries(m, { reactivationGapK: state.controls.reactivationGapK })),
       bridge: refundBridge(txs), refund: refundRate(txs), inv: invoiceStats(txs),
     }
   }, [txs, state.controls])
 
-  const trend = useMemo(() => {
-    const m = buildMatrix(txs, state.controls.mode)
-    return m.months.map((mo) => ({ month: mo, MRR: Math.round(mrrOf(m, mo)), ARPA: Math.round(arpa(m, mo) ?? 0) }))
-  }, [txs, state.controls])
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <ViewHeader index="01" kicker="Snapshot" title="Overview" sub={model.month ? `As of ${model.month}` : 'No data'} />
 
-      <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-3 lg:grid-cols-6 [&>*]:border-0">
-        <KpiCard label="MRR" value={fmtMoney(model.mrr)} />
-        <KpiCard label="ARR" value={fmtMoney(model.arr)} />
-        <KpiCard label="ARPA" value={fmtMoney(model.arpa)} />
-        <KpiCard label="Active customers" value={fmtNum(model.activeCustomers)} />
-        <KpiCard label="Logo churn (MoM)" value={fmtPct(model.logoChurn)} />
-        <KpiCard label="Avg lifetime" value={model.avgLifetime == null ? '—' : `${model.avgLifetime.toFixed(1)} mo`} />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <KpiCard hero icon="$" iconColor="var(--accent)" label="MRR" value={fmtMoney(model.mrr)} delta={d.mrrDelta} />
+        <KpiCard hero icon="Σ" iconColor="var(--steel)" label="ARR" value={fmtMoneyShort(model.arr)} delta={d.mrrDelta} />
+        <KpiCard hero icon="◑" iconColor="var(--violet)" label="ARPA" value={fmtMoney(model.arpa)} delta={d.arpaDelta} />
+        <KpiCard hero icon="◉" iconColor="var(--pos)" label="Active customers" value={fmtNum(model.activeCustomers)} delta={d.activeDelta} />
+        <KpiCard hero icon="↘" iconColor="var(--neg)" label="Logo churn (MoM)" value={fmtPct(model.logoChurn)} tone={model.logoChurn ? 'neg' : 'default'} />
+        <KpiCard hero icon="⧗" iconColor="var(--warn)" label="Avg lifetime" value={model.avgLifetime == null ? '—' : `${model.avgLifetime.toFixed(1)} mo`} />
       </div>
+
+      <Panel title="MRR trajectory" sub={d.hasGhost ? 'solid = now · dashed = one year ago' : undefined}>
+        <TrendChart data={d.mrrChart} xKey="month" area height={280}
+          series={[{ key: 'MRR', color: CHART.accent }, ...(d.hasGhost ? [{ key: 'MRR · yr ago', color: CHART.ink, ghost: true }] : [])]} />
+      </Panel>
 
       <div>
         <h2 className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Retention & efficiency (MoM)</h2>
-        <div className={GRID}>
-          <KpiCard label="Net revenue retention" value={fmtPct(extra.nrr)} tone={extra.nrr != null && extra.nrr >= 1 ? 'pos' : 'default'} />
-          <KpiCard label="Gross revenue retention" value={fmtPct(extra.grr)} />
-          <KpiCard label="Quick ratio" value={extra.quick == null ? '—' : extra.quick.toFixed(2)} hint="inflow ÷ outflow" />
-          <KpiCard label="Refund rate" value={fmtPct(extra.refund)} hint="proxy — dissatisfaction" tone={extra.refund ? 'neg' : 'default'} />
+        <div className={KSTRIP}>
+          <KpiCard label="Net revenue retention" value={fmtPct(d.nrr)} tone={d.nrr != null && d.nrr >= 1 ? 'pos' : 'default'} hint="benchmark ≥ 100%" />
+          <KpiCard label="Gross revenue retention" value={fmtPct(d.grr)} hint="benchmark ~90%" />
+          <KpiCard label="Quick ratio" value={d.quick == null ? '—' : d.quick.toFixed(2)} hint="healthy ≥ 4" tone={d.quick != null && d.quick >= 4 ? 'pos' : 'default'} />
+          <KpiCard label="Refund rate" value={fmtPct(d.refund)} hint="dissatisfaction proxy" tone={d.refund ? 'neg' : 'default'} />
         </div>
       </div>
 
       <div>
         <h2 className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Bookings</h2>
-        <div className={GRID}>
-          <KpiCard label="Net revenue" value={fmtMoney(extra.bridge.net)} hint={`gross ${fmtMoney(extra.bridge.gross)} − refunds ${fmtMoney(extra.bridge.refunded)}`} />
-          <KpiCard label="Distinct invoices" value={fmtNum(extra.inv.distinctInvoices)} />
-          <KpiCard label="Avg invoice value" value={fmtMoney(extra.inv.avgInvoiceValue)} />
-          <KpiCard label="Avg payment size" value={fmtMoney(extra.inv.avgPaymentSize)} />
+        <div className={KSTRIP}>
+          <KpiCard label="Net revenue" value={fmtMoney(d.bridge.net)} hint={`gross ${fmtMoney(d.bridge.gross)} − refunds ${fmtMoney(d.bridge.refunded)}`} />
+          <KpiCard label="Distinct invoices" value={fmtNum(d.inv.distinctInvoices)} />
+          <KpiCard label="Avg invoice value" value={fmtMoney(d.inv.avgInvoiceValue)} />
+          <KpiCard label="Avg payment size" value={fmtMoney(d.inv.avgPaymentSize)} />
         </div>
       </div>
 
-      <TrendChart data={trend} xKey="month" series={[{ key: 'MRR', color: CHART.navy }, { key: 'ARPA', color: CHART.steel }]} />
-      <Callout>NRR/GRR shown month-over-month (prior → latest). Refund rate is a dissatisfaction proxy, not a survey metric. Cost-dependent metrics (LTV:CAC, Magic Number, Rule-of-40 profit half) are omitted — this dataset has no spend data.</Callout>
+      <Panel title="MRR by segment" sub="per-model trajectory (small multiples)">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {d.segs.map((s) => (
+            <div key={s.name} className="rounded-lg border border-line bg-paper-2 p-3">
+              <div className="flex items-center justify-between">
+                <div className="truncate font-mono text-[10px] uppercase tracking-wider text-ink-soft">{s.name}</div>
+              </div>
+              <div className="mt-1 flex items-end justify-between gap-2">
+                <div className="font-mono text-lg font-semibold tabular-nums text-ink">{fmtMoney(s.last)}</div>
+                <Sparkline data={s.series} w={64} h={22} color={s.delta != null && s.delta < 0 ? 'var(--neg)' : 'var(--accent)'} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <Callout>NRR/GRR shown month-over-month (prior → latest). Benchmarks are common SaaS reference points, not peer-calibrated. Cost-dependent metrics (LTV:CAC, Magic Number, Rule-of-40) are omitted — this dataset has no spend data.</Callout>
     </div>
   )
 }

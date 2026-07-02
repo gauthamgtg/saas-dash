@@ -21,7 +21,7 @@ import { MiniBar } from '@/src/components/ui/MiniBar'
 import { Delta } from '@/src/components/ui/Delta'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
 import { CHART } from '@/src/lib/theme'
-import { fmtMoney, fmtNum, fmtPct } from '@/src/lib/format'
+import { fmtMoney, fmtMoneyShort, fmtNum, fmtPct } from '@/src/lib/format'
 
 const rel = (cur: number, prev: number) => (prev ? (cur - prev) / prev : null)
 
@@ -94,10 +94,10 @@ export function Briefing() {
 
       {/* KPI header band */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <KpiCard hero icon="$" iconColor="var(--accent)" label="MRR" value={fmtMoney(d.mrr)} delta={d.mrrDelta} deltaLabel={`vs ${d.prev}`} spark={d.mrrSeries} />
-        <KpiCard hero icon="Σ" iconColor="var(--steel)" label="ARR" value={fmtMoney(d.arr)} delta={d.mrrDelta} deltaLabel="annualised run-rate" />
+        <KpiCard hero icon="$" iconColor="var(--accent)" label="MRR" value={fmtMoney(d.mrr)} delta={d.mrrDelta} deltaLabel={`vs ${d.prev}`} />
+        <KpiCard hero icon="Σ" iconColor="var(--steel)" label="ARR" value={fmtMoneyShort(d.arr)} delta={d.mrrDelta} deltaLabel="annualised run-rate" />
         <KpiCard hero icon="#" iconColor="var(--violet)" label="Total customers" value={fmtNum(d.totalCustomers)} deltaLabel="all-time distinct" />
-        <KpiCard hero icon="◉" iconColor="var(--pos)" label="Active customers" value={fmtNum(d.active)} delta={d.activeDelta} deltaLabel={`vs ${d.prev}`} spark={d.activeSer} sparkColor="var(--steel)" />
+        <KpiCard hero icon="◉" iconColor="var(--pos)" label="Active customers" value={fmtNum(d.active)} delta={d.activeDelta} deltaLabel={`vs ${d.prev}`} />
         <KpiCard hero icon="↘" iconColor="var(--neg)" label="Logo churn" value={fmtPct(d.churn)} tone={d.churn ? 'neg' : 'default'} deltaLabel="month-over-month" />
         <KpiCard hero icon="⛨" iconColor="var(--pos)" label="Net rev retention" value={fmtPct(d.retention)} tone={d.retention != null && d.retention >= 1 ? 'pos' : 'default'} deltaLabel="MoM" />
       </div>

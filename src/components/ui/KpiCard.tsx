@@ -33,10 +33,10 @@ export function KpiCard({ label, value, hint, tone, delta, deltaLabel, deltaInve
         </div>
         {delta !== undefined && <Delta value={delta ?? null} invert={deltaInvert} />}
       </div>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <div className={`font-mono tabular-nums ${hero ? 'text-[1.9rem] leading-none' : 'text-2xl'} font-semibold ${color}`}>{value}</div>
+      <div className="mt-2 flex items-end justify-between gap-1.5">
+        <div className={`min-w-0 truncate font-mono tabular-nums ${hero ? 'text-[1.75rem] leading-none' : 'text-2xl'} font-semibold ${color}`}>{value}</div>
         {spark && spark.length > 1 && (
-          <Sparkline data={spark} color={sparkColor ?? (tone === 'neg' ? 'var(--neg)' : 'var(--accent)')} w={hero ? 100 : 80} h={hero ? 32 : 26} />
+          <Sparkline data={spark} color={sparkColor ?? (tone === 'neg' ? 'var(--neg)' : 'var(--accent)')} w={hero ? 60 : 72} h={hero ? 28 : 24} />
         )}
       </div>
       {(hint || deltaLabel) && <div className="mt-1.5 text-[11px] leading-snug text-ink-faint">{deltaLabel ?? hint}</div>}

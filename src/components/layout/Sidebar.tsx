@@ -33,9 +33,8 @@ export function Sidebar() {
             return (
               <button key={it.id} onClick={() => dispatch({ type: 'setView', view: it.id })}
                 className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                  active ? 'bg-paper-2 text-ink' : 'text-ink-soft hover:bg-paper-2/60 hover:text-ink'}`}>
-                {active && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent" />}
-                <span className={`font-mono text-[10px] tabular-nums ${active ? 'text-accent' : 'text-ink-faint'}`}>{it.idx}</span>
+                  active ? 'bg-accent text-accent-ink shadow-card' : 'text-ink-soft hover:bg-paper-2 hover:text-ink'}`}>
+                <span className={`font-mono text-[10px] tabular-nums ${active ? 'text-accent-ink opacity-70' : 'text-ink-faint'}`}>{it.idx}</span>
                 {it.label}
               </button>
             )
