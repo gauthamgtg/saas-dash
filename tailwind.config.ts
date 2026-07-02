@@ -15,6 +15,7 @@ export default {
         navy: 'var(--navy)',
         accent: 'var(--accent)',
         'accent-dim': 'var(--accent-dim)',
+        'accent-ink': 'var(--accent-ink)',
         pos: 'var(--pos)',
         neg: 'var(--neg)',
         warn: 'var(--warn)',
@@ -22,8 +23,8 @@ export default {
         violet: 'var(--violet)',
       },
       boxShadow: {
-        card: '0 1px 0 0 rgba(255,255,255,0.02) inset, 0 8px 24px -12px rgba(0,0,0,0.6)',
-        pop: '0 16px 40px -12px rgba(0,0,0,0.7)',
+        card: 'var(--shadow-card)',
+        pop: 'var(--shadow-pop)',
       },
       fontFamily: {
         display: ['var(--font-display)', 'ui-sans-serif', 'system-ui', 'sans-serif'],

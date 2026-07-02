@@ -5,6 +5,7 @@ import { MRR_MODES } from '@/src/lib/types'
 import { monthRange } from '@/src/lib/types'
 import { dimensionValues } from '@/src/lib/dashboard'
 import type { MrrMode } from '@/src/lib/types'
+import { ThemeToggle } from '@/src/components/ui/ThemeToggle'
 
 const LBL = 'font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft'
 const CTL = 'rounded-md px-2 py-1 text-sm'
@@ -72,6 +73,7 @@ export function ControlBar() {
           ))}
         </div>
       </details>
+      <div className="ml-auto"><ThemeToggle /></div>
     </div>
   )
 }
