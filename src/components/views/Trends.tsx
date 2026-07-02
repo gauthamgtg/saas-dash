@@ -69,14 +69,14 @@ export function Trends() {
         <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Seasonality (calendar-month index)</h2>
         {season
           ? <TrendChart data={season} xKey="calMonth" series={[{ key: 'index', name: 'Index (100=avg)', color: CHART.navy }]} />
-          : <Callout>Needs ≥12 months of history to compute a stable seasonal index.</Callout>}
+          : <Callout>Needs ≥24 months (2 full years) of history to compute a stable seasonal index.</Callout>}
       </section>
 
       <section className="space-y-2">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">T2D3 trajectory</h2>
         {traj.length
           ? <DataTable columns={t2d3Cols} rows={traj} />
-          : <Callout>Needs ≥13 months of history to compare year-over-year ARR against the 3·3·2·2·2 benchmark.</Callout>}
+          : <Callout>Needs ≥24 months (2 full years) of history to compare year-over-year ARR against the 3·3·2·2·2 benchmark.</Callout>}
       </section>
     </div>
   )

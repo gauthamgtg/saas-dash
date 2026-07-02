@@ -3,12 +3,12 @@ import { get } from './matrix'
 import { median } from './stats'
 import { monthDiff } from '../types'
 
-/** Share of customers who ever made a second (non-refund) payment. */
+/** Share of customers who ever made a second (non-refund) payment. Denominator = all distinct customers. */
 export function firstPurchaseToRepeat(txs: Transaction[]): number | null {
+  const total = new Set(txs.map((t) => t.customerId)).size
+  if (!total) return null
   const counts = new Map<string, number>()
   for (const t of txs) if (!t.isRefund) counts.set(t.customerId, (counts.get(t.customerId) ?? 0) + 1)
-  const total = counts.size
-  if (!total) return null
   let repeaters = 0
   for (const n of counts.values()) if (n >= 2) repeaters++
   return repeaters / total

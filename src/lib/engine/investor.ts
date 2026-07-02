@@ -7,7 +7,7 @@ import { monthDiff, addMonths } from '../types'
  * Year 0 = the matrix's first month; each subsequent 12-month step compared.
  */
 export function t2d3(m: Matrix): { year: number; arr: number; multiple: number | null; target: number; onTrack: boolean | null }[] {
-  if (m.months.length < 13) return []
+  if (m.months.length < 24) return [] // needs ≥2 years of history (spec §9)
   const targets = [3, 3, 2, 2, 2]
   const out: { year: number; arr: number; multiple: number | null; target: number; onTrack: boolean | null }[] = []
   const start = m.months[0]

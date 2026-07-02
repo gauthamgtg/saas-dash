@@ -79,13 +79,17 @@ export function healthScore(
 ): number {
   const rec = recencyDays(txs, customerId, asOf) ?? 1e9
   const freshness = Math.max(0, 1 - rec / (dormancyDays * 2)) // 1 fresh … 0 stale
-  const vals = m.months.map((mo) => get(m, customerId, mo)).filter((_, i, arr) => arr.slice(0, i + 1).some((v) => v !== 0))
-  const active = vals.filter((v) => v !== 0)
+  const monthly = m.months.map((mo) => get(m, customerId, mo))
+  const active = monthly.filter((v) => v !== 0)
   const trend = active.length >= 2 ? Math.sign(active[active.length - 1] - active[0]) : 0 // -1..1
   const gross = txs.filter((t) => t.customerId === customerId && !t.isRefund).reduce((s, t) => s + t.amountBase, 0)
   const refunded = txs.filter((t) => t.customerId === customerId && t.isRefund).reduce((s, t) => s + Math.abs(t.amountBase), 0)
   const refundPenalty = gross > 0 ? Math.min(1, refunded / gross) : 0
-  const tenureMonths = active.length
+  // tenure = observed span (first→last active month + 1), not count of active months
+  const firstIdx = monthly.findIndex((v) => v !== 0)
+  let lastIdx = monthly.length - 1
+  while (lastIdx > firstIdx && monthly[lastIdx] === 0) lastIdx--
+  const tenureMonths = firstIdx < 0 ? 0 : lastIdx - firstIdx + 1
   const tenureScore = Math.min(1, tenureMonths / 12)
   const raw = 0.4 * freshness + 0.25 * ((trend + 1) / 2) - 0.2 * refundPenalty + 0.15 * tenureScore
   return Math.round(Math.max(0, Math.min(1, raw)) * 100)

@@ -38,9 +38,9 @@ export function netLogoSeries(m: Matrix): { month: string; adds: number; losses:
   })
 }
 
-/** Calendar-month revenue index (Jan..Dec) vs the annual mean. null if span < 12 months. */
+/** Calendar-month revenue index (Jan..Dec) vs the annual mean. null under 24 months (needs 2 full years). */
 export function seasonalityIndex(m: Matrix): { calMonth: string; index: number }[] | null {
-  if (m.months.length < 12) return null
+  if (m.months.length < 24) return null
   const byCal = new Map<string, number[]>() // 'MM' -> monthly totals
   for (const mo of m.months) {
     const cal = mo.slice(5)

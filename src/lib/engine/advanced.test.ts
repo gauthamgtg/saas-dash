@@ -29,6 +29,14 @@ describe('lifecycle', () => {
   it('first→repeat conversion (all 3 repeat)', () => {
     expect(firstPurchaseToRepeat(txs)).toBeCloseTo(1)
   })
+  it('conversion denominator counts refund-only customers too', () => {
+    const data = [
+      tx({ customerId: 'r1', month: '2026-01', amountBase: 100 }),
+      tx({ customerId: 'r1', month: '2026-02', amountBase: 100 }), // repeater
+      tx({ customerId: 'r2', month: '2026-01', amountBase: -50, isRefund: true }), // refund-only
+    ]
+    expect(firstPurchaseToRepeat(data)).toBeCloseTo(0.5) // 1 repeater / 2 distinct customers
+  })
   it('median time to second purchase', () => {
     expect(timeToSecondPurchaseDays(txs)).toBe(31) // gaps [31,59,28] → median 31
   })
