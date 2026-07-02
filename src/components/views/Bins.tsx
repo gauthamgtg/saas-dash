@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
-import { buildMatrix, binAnalysis, binSeries, gini, paretoConcentration, hhi } from '@/src/lib/engine'
+import { buildMatrix, binAnalysis, binSeries, gini, paretoConcentration, hhi, revenueDeciles, whaleVsLongTail } from '@/src/lib/engine'
 import type { BinDef } from '@/src/lib/types'
 import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { BarsChart } from '@/src/components/ui/BarsChart'
@@ -43,7 +43,7 @@ export function Bins() {
 
   return (
     <div className="space-y-5">
-      <ViewHeader index="06" kicker="Distribution" title="Revenue Bins" sub="Customers bucketed by monthly revenue — bins are fully editable" />
+      <ViewHeader index="08" kicker="Distribution" title="Revenue Bins" sub="Customers bucketed by monthly revenue — bins are fully editable" />
 
       <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4 [&>*]:border-0">
         <KpiCard label="Revenue Gini" value={gini(txs) == null ? '—' : gini(txs)!.toFixed(3)} hint="0 equal … 1 concentrated" />
@@ -80,6 +80,33 @@ export function Bins() {
 
       <section className="space-y-1"><h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Contribution by bin over time</h2>
         <BarsChart data={trend} xKey="month" stacked series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} /></section>
+
+      <section className="space-y-2">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Revenue deciles & whales</h2>
+        {(() => {
+          const whale = whaleVsLongTail(txs, 0.2)
+          const deciles = revenueDeciles(txs)
+          return (
+            <>
+              <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4 [&>*]:border-0">
+                <KpiCard label="Whales (top 20%)" value={fmtNum(whale.whaleCount)} />
+                <KpiCard label="Whale revenue share" value={fmtPct(whale.whaleShare)} />
+                <KpiCard label="Long-tail count" value={fmtNum(whale.tailCount)} />
+                <KpiCard label="Long-tail share" value={fmtPct(whale.tailShare)} />
+              </div>
+              <div className="grid grid-cols-5 gap-px border border-line bg-line text-center md:grid-cols-10 [&>*]:border-0">
+                {deciles.map((d) => (
+                  <div key={d.decile} className="bg-paper p-2">
+                    <div className="font-mono text-[10px] text-ink-soft">D{d.decile}</div>
+                    <div className="font-mono text-sm font-medium tabular-nums">{fmtPct(d.share)}</div>
+                    <div className="font-mono text-[10px] text-ink-faint tabular-nums">{fmtNum(d.customers)}c</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )
+        })()}
+      </section>
     </div>
   )
 }

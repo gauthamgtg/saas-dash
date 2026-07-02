@@ -31,7 +31,7 @@ export function Segments() {
 
   return (
     <div className="space-y-5">
-      <ViewHeader index="04" kicker="Breakdown" title="Segments" sub="Where the revenue sits, and how concentrated it is" />
+      <ViewHeader index="05" kicker="Breakdown" title="Segments" sub="Where the revenue sits, and how concentrated it is" />
 
       <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4 [&>*]:border-0">
         <KpiCard label="Customer HHI" value={fmtNum(Math.round(hhi(txs)))} hint="0–10,000; >2500 concentrated" tone={hhi(txs) > 2500 ? 'neg' : 'default'} />

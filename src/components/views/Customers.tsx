@@ -50,7 +50,7 @@ export function Customers() {
 
   return (
     <div className="space-y-5">
-      <ViewHeader index="05" kicker="Accounts" title="Customers" sub="Top 25 by revenue, with churn-risk & engagement signals" />
+      <ViewHeader index="06" kicker="Accounts" title="Customers" sub="Top 25 by revenue, with churn-risk & engagement signals" />
       <div className="grid grid-cols-3 gap-px border border-line bg-line [&>*]:border-0">
         <KpiCard label="Shown" value={fmtNum(rows.length)} />
         <KpiCard label="At-risk" value={fmtNum(atRiskCount)} tone={atRiskCount ? 'neg' : 'default'} hint={`≥${state.controls.atRiskStreak} declining months`} />
