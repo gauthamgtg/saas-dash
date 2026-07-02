@@ -8,7 +8,7 @@ import type { DataIssue } from '@/src/lib/normalize'
 import type { Filters, DateRange } from '@/src/lib/dashboard'
 import type { ParsedFile } from '@/src/lib/parse'
 
-export type ViewId = 'overview' | 'growth' | 'cohorts' | 'segments' | 'customers' | 'bins'
+export type ViewId = 'overview' | 'growth' | 'trends' | 'cohorts' | 'segments' | 'customers' | 'health' | 'bins'
 
 type State = {
   parsed: ParsedFile | null

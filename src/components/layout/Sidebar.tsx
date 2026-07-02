@@ -3,8 +3,9 @@ import { useApp, type ViewId } from '@/src/state/AppContext'
 
 const ITEMS: { id: ViewId; label: string }[] = [
   { id: 'overview', label: 'Overview' }, { id: 'growth', label: 'Growth' },
-  { id: 'cohorts', label: 'Cohorts' }, { id: 'segments', label: 'Segments' },
-  { id: 'customers', label: 'Customers' }, { id: 'bins', label: 'Revenue Bins' },
+  { id: 'trends', label: 'Trends' }, { id: 'cohorts', label: 'Cohorts' },
+  { id: 'segments', label: 'Segments' }, { id: 'customers', label: 'Customers' },
+  { id: 'health', label: 'Customer Health' }, { id: 'bins', label: 'Revenue Bins' },
 ]
 
 export function Sidebar() {
