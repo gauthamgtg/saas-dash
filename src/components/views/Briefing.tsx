@@ -3,80 +3,27 @@ import { useMemo } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
 import {
-  buildMatrix, mrrOf, arr as arrOf, arpa, activeCustomers, logoChurnRate,
-  nrr, grr, quickRatio, movementSeries, revenueByDimension, topCustomers,
-  topNShare, hhi, paretoConcentration, refundRate, refundBridge,
+  buildMatrix, mrrOf, arr as arrOf, get, activeCustomers, logoChurnRate,
+  nrr, movementSeries, revenueByDimension, movementEvents,
 } from '@/src/lib/engine'
+import { insights } from '@/src/lib/insights'
 import { addMonths } from '@/src/lib/types'
 import { KpiCard } from '@/src/components/ui/KpiCard'
 import { TrendChart } from '@/src/components/ui/TrendChart'
+import { DonutChart } from '@/src/components/ui/DonutChart'
+import { DualAxisChart } from '@/src/components/ui/DualAxisChart'
+import { Waterfall } from '@/src/components/ui/Waterfall'
+import { ActivityFeed } from '@/src/components/ui/ActivityFeed'
+import { GeoPanel } from '@/src/components/ui/GeoPanel'
+import { InsightsPanel } from '@/src/components/ui/InsightsPanel'
+import { Panel } from '@/src/components/ui/Panel'
+import { MiniBar } from '@/src/components/ui/MiniBar'
+import { Delta } from '@/src/components/ui/Delta'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
-import { Callout } from '@/src/components/ui/Callout'
-import { DataTable } from '@/src/components/ui/DataTable'
-import type { Column } from '@/src/components/ui/DataTable'
 import { CHART } from '@/src/lib/theme'
-import { fmtMoney, fmtNum, fmtPct } from '@/src/lib/format'
-import type { CustomerTotal } from '@/src/lib/engine/segments'
+import { fmtMoney, fmtMoneyShort, fmtNum, fmtPct } from '@/src/lib/format'
 
-const KGRID = 'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-3 lg:grid-cols-6 [&>*]:border-0'
 const rel = (cur: number, prev: number) => (prev ? (cur - prev) / prev : null)
-
-/** Diverging-magnitude bar list for the month's revenue movement. */
-function MovementPanel({ move }: { move: ReturnType<typeof movementSeries>[number] | undefined }) {
-  const rows = move ? [
-    { label: 'New', v: move.newMrr, color: CHART.accent },
-    { label: 'Expansion', v: move.expansion, color: CHART.steel },
-    { label: 'Reactivation', v: move.reactivation, color: CHART.violet },
-    { label: 'Contraction', v: -move.contraction, color: CHART.warn },
-    { label: 'Churn', v: -move.churn, color: CHART.neg },
-  ] : []
-  const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.v)))
-  return (
-    <div className="flex h-full flex-col rounded-xl border border-line bg-paper p-4 shadow-card">
-      <div className="mb-3 flex items-baseline justify-between">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Revenue movement · {move?.month ?? '—'}</h3>
-        <span className={`font-mono text-sm font-medium tabular-nums ${!move ? 'text-ink' : move.netNew >= 0 ? 'text-pos' : 'text-neg'}`}>
-          {move ? `${move.netNew >= 0 ? '+' : ''}${fmtMoney(move.netNew)}` : '—'}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col justify-center gap-2.5">
-        {rows.map((r) => (
-          <div key={r.label} className="flex items-center gap-3">
-            <div className="w-20 shrink-0 text-right font-mono text-[11px] text-ink-soft">{r.label}</div>
-            <div className="relative h-4 flex-1 overflow-hidden rounded bg-paper-2">
-              <div className="absolute inset-y-0 left-0 rounded" style={{ width: `${(Math.abs(r.v) / maxAbs) * 100}%`, background: r.color, opacity: 0.85 }} />
-            </div>
-            <div className="w-24 shrink-0 text-right font-mono text-[11px] tabular-nums text-ink">{r.v >= 0 ? '+' : '−'}{fmtMoney(Math.abs(r.v))}</div>
-          </div>
-        ))}
-        {!move && <p className="text-center font-mono text-xs text-ink-faint">Need ≥2 months of data</p>}
-      </div>
-      <p className="mt-3 border-t border-line pt-2 font-mono text-[10px] text-ink-faint">Net new = new + expansion + reactivation − contraction − churn</p>
-    </div>
-  )
-}
-
-/** Compact horizontal share breakdown for a dimension. */
-function SharePanel({ title, rows }: { title: string; rows: { key: string; revenue: number; share: number }[] }) {
-  const top = rows.slice(0, 6)
-  return (
-    <div className="rounded-xl border border-line bg-paper p-4 shadow-card">
-      <h3 className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">{title}</h3>
-      <div className="flex flex-col gap-2.5">
-        {top.map((r, i) => (
-          <div key={r.key} className="flex items-center gap-3">
-            <div className="w-28 shrink-0 truncate text-[13px] text-ink" title={r.key}>{r.key}</div>
-            <div className="relative h-4 flex-1 overflow-hidden rounded bg-paper-2">
-              <div className="absolute inset-y-0 left-0 rounded" style={{ width: `${r.share * 100}%`, background: CHART.series[i % CHART.series.length], opacity: 0.85 }} />
-            </div>
-            <div className="w-14 shrink-0 text-right font-mono text-[11px] tabular-nums text-ink-soft">{fmtPct(r.share, 0)}</div>
-          </div>
-        ))}
-        {!top.length && <p className="font-mono text-xs text-ink-faint">No data</p>}
-      </div>
-    </div>
-  )
-}
 
 export function Briefing() {
   const { state } = useApp()
@@ -87,105 +34,124 @@ export function Briefing() {
     const months = m.months
     const last = months[months.length - 1] ?? ''
     const prev = months.length > 1 ? months[months.length - 2] : addMonths(last, -1)
+    const nameById = new Map<string, string | null>(), modelById = new Map<string, string>()
+    for (const t of txs) { if (!nameById.has(t.customerId)) nameById.set(t.customerId, t.name); if (!modelById.has(t.customerId)) modelById.set(t.customerId, t.businessModel ?? 'Unknown') }
 
     const mrrSeries = months.map((mo) => Math.round(mrrOf(m, mo)))
     const activeSer = months.map((mo) => activeCustomers(m, mo))
-    const arpaSer = months.map((mo) => Math.round(arpa(m, mo) ?? 0))
+    const netNewSer = movementSeries(m, { reactivationGapK: state.controls.reactivationGapK }).map((x) => Math.round(x.netNew))
     const move = movementSeries(m, { reactivationGapK: state.controls.reactivationGapK })
-    const netNewSer = move.map((x) => Math.round(x.netNew))
+    const lastMove = move[move.length - 1]
+
+    // MRR trend with a year-ago ghost when we have the history
+    const mrrChart = months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i], ...(i >= 12 ? { 'MRR · yr ago': mrrSeries[i - 12] } : {}) }))
+    const arrChart = months.map((mo, i) => ({ month: mo, ARR: mrrSeries[i] * 12 }))
+
+    // MRR by plan (current month)
+    const modelMrr = new Map<string, number>()
+    for (const t of txs) if (t.month === last && !t.isRefund) modelMrr.set(t.businessModel ?? 'Unknown', (modelMrr.get(t.businessModel ?? 'Unknown') ?? 0) + t.amountBase)
+    const donut = [...modelMrr.entries()].map(([key, value]) => ({ key, value })).sort((a, b) => b.value - a.value)
+
+    // Top customers by current MRR
+    const top = m.customers.map((c) => ({ customerId: c, name: nameById.get(c) ?? c, model: modelById.get(c) ?? '—', mrr: get(m, c, last), prev: get(m, c, prev) }))
+      .filter((r) => r.mrr > 0).sort((a, b) => b.mrr - a.mrr).slice(0, 6)
+    const topMax = Math.max(1, ...top.map((t) => t.mrr))
+
+    // Churn & retention trend
+    const cr = months.slice(1).map((mo, idx) => {
+      const ch = logoChurnRate(m, months[idx], mo) ?? 0
+      return { month: mo, Retention: +((1 - ch) * 100).toFixed(1), Churn: +(ch * 100).toFixed(2) }
+    })
 
     const curMrr = mrrOf(m, last), prevMrr = mrrOf(m, prev)
     const curActive = activeCustomers(m, last), prevActive = activeCustomers(m, prev)
-    const curArpa = arpa(m, last), prevArpa = arpa(m, prev)
+    const churn = logoChurnRate(m, prev, last)
+    const retention = nrr(m, prev, last)
 
     return {
-      month: last, hasData: months.length > 0,
-      mrr: curMrr, arr: arrOf(m, last), arpa: curArpa, active: curActive,
+      hasData: months.length > 0, month: last, prev,
+      mrr: curMrr, arr: arrOf(m, last), totalCustomers: new Set(txs.map((t) => t.customerId)).size, active: curActive,
+      churn, retention,
       mrrDelta: rel(curMrr, prevMrr), activeDelta: rel(curActive, prevActive),
-      arpaDelta: curArpa != null && prevArpa != null ? rel(curArpa, prevArpa) : null,
-      mrrSeries, activeSer, arpaSer, netNewSer,
-      mrrChart: months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i] })),
-      lastMove: move[move.length - 1],
-      nrr: nrr(m, prev, last), grr: grr(m, prev, last),
-      quick: quickRatio(move), logoChurn: logoChurnRate(m, prev, last),
-      refund: refundRate(txs), net: refundBridge(txs).net,
-      region: revenueByDimension(txs, 'region'), model: revenueByDimension(txs, 'businessModel'),
-      top: topCustomers(txs, 8), top5: topNShare(txs, 5), hhi: Math.round(hhi(txs)),
-      pareto: paretoConcentration(txs),
+      mrrSeries, activeSer, netNewSer, mrrChart, arrChart, donut, top, topMax, cr,
+      lastMove, opening: prevMrr,
+      geo: revenueByDimension(txs, 'country'),
+      events: movementEvents(m, txs, state.controls.reactivationGapK),
+      insights: insights(txs, state.controls),
     }
   }, [txs, state.controls])
-
-  const cols: Column<CustomerTotal>[] = [
-    { key: 'name', header: 'Customer', render: (r) => r.name ?? r.customerId },
-    { key: 'rev', header: 'Revenue', align: 'right', render: (r) => fmtMoney(r.revenue) },
-    { key: 'share', header: 'Share', align: 'right', render: (r) => fmtPct(r.share) },
-  ]
 
   if (!d.hasData) return (
     <div className="space-y-5">
       <ViewHeader index="00" kicker="Executive Briefing" title="Briefing" />
-      <Callout>No rows after the current filters. Widen the date range or clear filters.</Callout>
+      <Panel><p className="font-mono text-sm text-ink-faint">No rows after the current filters. Widen the date range or clear filters.</p></Panel>
     </div>
   )
 
   return (
-    <div className="space-y-6">
-      <ViewHeader index="00" kicker="Executive Briefing" title="The one-screen picture" sub={`As of ${d.month} · everything below reflects the active filters & controls`} />
+    <div className="space-y-4">
+      <ViewHeader index="00" kicker="Executive Briefing" title="The one-screen picture" sub={`As of ${d.month} · reflects active filters & controls`} />
 
-      {/* Headline hero KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard hero label="MRR" value={fmtMoney(d.mrr)} delta={d.mrrDelta} spark={d.mrrSeries} sparkColor="var(--accent)" hint="Monthly recurring revenue" />
-        <KpiCard hero label="ARR" value={fmtMoney(d.arr)} delta={d.mrrDelta} hint="Annualised run-rate" />
-        <KpiCard hero label="Active customers" value={fmtNum(d.active)} delta={d.activeDelta} spark={d.activeSer} sparkColor="var(--steel)" />
-        <KpiCard hero label="Net new MRR" value={`${(d.lastMove?.netNew ?? 0) >= 0 ? '+' : ''}${fmtMoney(d.lastMove?.netNew ?? 0)}`}
-          tone={(d.lastMove?.netNew ?? 0) >= 0 ? 'pos' : 'neg'} spark={d.netNewSer} sparkColor="var(--accent)" hint={`this month · ${d.month}`} />
+      {/* KPI header band */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <KpiCard hero icon="$" iconColor="var(--accent)" label="MRR" value={fmtMoney(d.mrr)} delta={d.mrrDelta} deltaLabel={`vs ${d.prev}`} />
+        <KpiCard hero icon="Σ" iconColor="var(--steel)" label="ARR" value={fmtMoneyShort(d.arr)} delta={d.mrrDelta} deltaLabel="annualised run-rate" />
+        <KpiCard hero icon="#" iconColor="var(--violet)" label="Total customers" value={fmtNum(d.totalCustomers)} deltaLabel="all-time distinct" />
+        <KpiCard hero icon="◉" iconColor="var(--pos)" label="Active customers" value={fmtNum(d.active)} delta={d.activeDelta} deltaLabel={`vs ${d.prev}`} />
+        <KpiCard hero icon="↘" iconColor="var(--neg)" label="Logo churn" value={fmtPct(d.churn)} tone={d.churn ? 'neg' : 'default'} deltaLabel="month-over-month" />
+        <KpiCard hero icon="⛨" iconColor="var(--pos)" label="Net rev retention" value={fmtPct(d.retention)} tone={d.retention != null && d.retention >= 1 ? 'pos' : 'default'} deltaLabel="MoM" />
       </div>
 
-      {/* Efficiency & retention strip */}
-      <div className={KGRID}>
-        <KpiCard label="NRR (MoM)" value={fmtPct(d.nrr)} tone={d.nrr != null && d.nrr >= 1 ? 'pos' : 'default'} />
-        <KpiCard label="GRR (MoM)" value={fmtPct(d.grr)} />
-        <KpiCard label="Quick ratio" value={d.quick == null ? '—' : d.quick.toFixed(2)} />
-        <KpiCard label="Logo churn" value={fmtPct(d.logoChurn)} tone={d.logoChurn ? 'neg' : 'default'} />
-        <KpiCard label="ARPA" value={fmtMoney(d.arpa)} delta={d.arpaDelta} />
-        <KpiCard label="Refund rate" value={fmtPct(d.refund)} tone={d.refund ? 'neg' : 'default'} />
-      </div>
-
-      {/* MRR trajectory + movement */}
+      {/* Trends + plan split */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <h3 className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">MRR trajectory</h3>
-          <TrendChart data={d.mrrChart} xKey="month" series={[{ key: 'MRR', color: CHART.accent }]} area height={300} />
-        </div>
-        <MovementPanel move={d.lastMove} />
+        <Panel className="lg:col-span-2" title="MRR trajectory" sub={d.mrrChart.some((r) => 'MRR · yr ago' in r) ? 'solid = now · dashed = one year ago' : undefined}
+          right={<Delta value={d.mrrDelta} />}>
+          <TrendChart data={d.mrrChart} xKey="month" area height={260}
+            series={[{ key: 'MRR', color: CHART.accent }, ...(d.mrrChart.some((r) => 'MRR · yr ago' in r) ? [{ key: 'MRR · yr ago', color: CHART.ink, ghost: true }] : [])]} />
+        </Panel>
+        <Panel title="MRR by plan" sub={`as of ${d.month}`}>
+          <DonutChart data={d.donut} centerLabel="Total MRR" height={200} />
+        </Panel>
       </div>
 
-      {/* Where revenue comes from */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <SharePanel title="Revenue by region" rows={d.region} />
-        <SharePanel title="Revenue by business model" rows={d.model} />
-      </div>
-
-      {/* Top customers + concentration */}
+      {/* Movement waterfall + top customers + churn/retention */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <h3 className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Top customers</h3>
-          <DataTable columns={cols} rows={d.top} />
-        </div>
-        <div className="flex flex-col gap-3">
-          <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Concentration</h3>
-          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line [&>*]:border-0">
-            <KpiCard label="Top-5 customer share" value={fmtPct(d.top5)} tone={d.top5 > 0.5 ? 'neg' : 'default'} hint="revenue from 5 largest accounts" />
-            <KpiCard label="Customer HHI" value={fmtNum(d.hhi)} hint="0–10,000 · >2,500 = concentrated" tone={d.hhi > 2500 ? 'neg' : 'default'} />
-            <KpiCard label="Customers → 80% rev" value={fmtPct(d.pareto.customersToEightyPct)} hint="Pareto: share of accounts making 80%" />
-          </div>
-        </div>
+        <Panel title="MRR movement" sub={`${d.prev} → ${d.month}`}
+          right={<span className="font-mono text-sm font-medium tabular-nums" style={{ color: (d.lastMove?.netNew ?? 0) >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{(d.lastMove?.netNew ?? 0) >= 0 ? '+' : ''}{fmtMoney(d.lastMove?.netNew ?? 0)}</span>}>
+          {d.lastMove
+            ? <Waterfall opening={d.opening} newMrr={d.lastMove.newMrr} expansion={d.lastMove.expansion} reactivation={d.lastMove.reactivation} contraction={d.lastMove.contraction} churn={d.lastMove.churn} height={260} />
+            : <p className="py-10 text-center font-mono text-xs text-ink-faint">Need ≥2 months</p>}
+        </Panel>
+        <Panel title="Top customers by MRR">
+          <table className="w-full text-sm">
+            <thead><tr className="text-left font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+              <th className="pb-2 font-medium">Customer</th><th className="pb-2 font-medium">Plan</th>
+              <th className="pb-2 text-right font-medium">MRR</th><th className="pb-2 text-right font-medium">Δ</th></tr></thead>
+            <tbody>
+              {d.top.map((t) => (
+                <tr key={t.customerId} className="border-t border-line">
+                  <td className="py-1.5 pr-2"><div className="flex items-center gap-2"><MiniBar value={t.mrr} max={d.topMax} width={26} /><span className="truncate">{t.name}</span></div></td>
+                  <td className="py-1.5 pr-2 text-ink-soft">{t.model}</td>
+                  <td className="py-1.5 text-right font-mono tabular-nums">{fmtMoney(t.mrr)}</td>
+                  <td className="py-1.5 text-right">{t.prev > 0 ? <Delta value={rel(t.mrr, t.prev)} /> : <span className="font-mono text-[11px] text-pos">new</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
+        <Panel title="Churn & retention" sub="logo, month-over-month">
+          <DualAxisChart data={d.cr} xKey="month" height={240}
+            leftFmt={(v) => `${v}%`} rightFmt={(v) => `${v}%`}
+            series={[{ key: 'Retention', color: CHART.pos, axis: 'left' }, { key: 'Churn', color: CHART.neg, axis: 'right' }]} />
+        </Panel>
       </div>
 
-      <Callout>
-        This briefing rolls up the detail views: <b>Overview</b> (KPIs), <b>Growth</b> (movement), <b>Segments</b> (mix & concentration) and <b>Customers</b>.
-        NRR/GRR are month-over-month (prior → latest). Refund rate is a dissatisfaction proxy. Cost-dependent metrics (LTV:CAC, Magic Number, Rule-of-40) are omitted — this dataset carries no spend.
-      </Callout>
+      {/* Activity + geo + insights */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Panel title="Recent activity" sub="individual revenue movements"><ActivityFeed events={d.events} limit={9} /></Panel>
+        <Panel title="Revenue by country"><GeoPanel rows={d.geo} limit={7} /></Panel>
+        <Panel title="Insights" sub="auto-generated"><InsightsPanel items={d.insights} /></Panel>
+      </div>
     </div>
   )
 }

@@ -5,7 +5,7 @@ export function Heatmap({ rows }: { rows: { label: string; size: number; values:
     v == null ? 'transparent' : `color-mix(in srgb, var(--accent) ${Math.round(Math.min(1, v) * 92)}%, var(--paper-2))`
   const fg = (v: number | null) => (v != null && v > 0.45 ? 'var(--bone)' : 'var(--ink)')
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-paper p-3 shadow-card">
+    <div className="overflow-x-auto">
       <table className="border-collapse text-xs tnum">
         <thead>
           <tr className="text-ink-soft">

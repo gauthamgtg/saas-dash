@@ -6,11 +6,14 @@ import { buildMatrix, binAnalysis, binSeries, gini, paretoConcentration, hhi, re
 import type { BinDef } from '@/src/lib/types'
 import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { BarsChart } from '@/src/components/ui/BarsChart'
+import { Panel } from '@/src/components/ui/Panel'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
 import { KpiCard } from '@/src/components/ui/KpiCard'
 import { CHART } from '@/src/lib/theme'
 import { fmtMoney, fmtPct, fmtNum } from '@/src/lib/format'
 import type { BinRow } from '@/src/lib/engine'
+
+const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-4 [&>*]:border-0'
 
 export function Bins() {
   const { state, dispatch } = useApp()
@@ -26,9 +29,7 @@ export function Bins() {
     return row
   }), [matrix, state.bins])
 
-  function editBin(i: number, patch: Partial<BinDef>) {
-    dispatch({ type: 'setBins', bins: state.bins.map((b, k) => (k === i ? { ...b, ...patch } : b)) })
-  }
+  function editBin(i: number, patch: Partial<BinDef>) { dispatch({ type: 'setBins', bins: state.bins.map((b, k) => (k === i ? { ...b, ...patch } : b)) }) }
   function addBin() { dispatch({ type: 'setBins', bins: [...state.bins, { label: 'New bin', min: 0, max: null }] }) }
   function removeBin(i: number) { dispatch({ type: 'setBins', bins: state.bins.filter((_, k) => k !== i) }) }
 
@@ -41,72 +42,62 @@ export function Bins() {
     { key: 'avgAcv', header: 'Avg ACV', align: 'right', render: (r) => fmtMoney(r.avgAcv) },
   ]
 
+  const whale = whaleVsLongTail(txs, 0.2)
+  const deciles = revenueDeciles(txs)
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <ViewHeader index="08" kicker="Distribution" title="Revenue Bins" sub="Customers bucketed by monthly revenue — bins are fully editable" />
 
-      <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4 [&>*]:border-0">
+      <div className={KSTRIP}>
         <KpiCard label="Revenue Gini" value={gini(txs) == null ? '—' : gini(txs)!.toFixed(3)} hint="0 equal … 1 concentrated" />
         <KpiCard label="Top-20% share" value={fmtPct(paretoConcentration(txs).top20Share)} />
         <KpiCard label="Customers to 80%" value={fmtPct(paretoConcentration(txs).customersToEightyPct)} hint="fewer = whale-heavy" />
         <KpiCard label="Customer HHI" value={fmtNum(Math.round(hhi(txs)))} />
       </div>
 
-      <section className="border border-line bg-paper p-4">
-        <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Bin thresholds (min &lt; value ≤ max; blank max = open top)</div>
+      <Panel title="Bin thresholds" sub="min < value ≤ max · blank max = open top"
+        right={<label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft">Month
+          <select className="px-2 py-1 text-sm normal-case tracking-normal" value={activeMonth} onChange={(e) => setMonth(e.target.value)}>
+            {matrix.months.map((mm) => <option key={mm} value={mm}>{mm}</option>)}
+          </select></label>}>
         <div className="space-y-1">
           {state.bins.map((b, i) => (
             <div key={i} className="flex items-center gap-2 text-sm">
-              <input className="w-40 border border-line-strong p-1" value={b.label} onChange={(e) => editBin(i, { label: e.target.value })} />
-              <input type="number" className="w-24 border border-line-strong p-1" value={Number.isFinite(b.min) ? b.min : ''} placeholder="-∞"
-                onChange={(e) => editBin(i, { min: e.target.value === '' ? -Infinity : Number(e.target.value) })} />
-              <span>→</span>
-              <input type="number" className="w-24 border border-line-strong p-1" value={b.max ?? ''} placeholder="∞"
-                onChange={(e) => editBin(i, { max: e.target.value === '' ? null : Number(e.target.value) })} />
-              <button onClick={() => removeBin(i)} className="text-red-500">✕</button>
+              <input className="w-40 rounded-md p-1" value={b.label} onChange={(e) => editBin(i, { label: e.target.value })} />
+              <input type="number" className="w-24 rounded-md p-1" value={Number.isFinite(b.min) ? b.min : ''} placeholder="-∞" onChange={(e) => editBin(i, { min: e.target.value === '' ? -Infinity : Number(e.target.value) })} />
+              <span className="text-ink-faint">→</span>
+              <input type="number" className="w-24 rounded-md p-1" value={b.max ?? ''} placeholder="∞" onChange={(e) => editBin(i, { max: e.target.value === '' ? null : Number(e.target.value) })} />
+              <button onClick={() => removeBin(i)} className="text-neg hover:opacity-70">✕</button>
             </div>
           ))}
         </div>
         <button onClick={addBin} className="mt-3 rounded-md border border-line-strong px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-soft hover:bg-paper-2 hover:text-ink">+ Add bin</button>
-      </section>
+      </Panel>
 
-      <label className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Month
-        <select className="ml-2 px-2 py-1 text-sm normal-case tracking-normal" value={activeMonth} onChange={(e) => setMonth(e.target.value)}>
-          {matrix.months.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-      </label>
+      {result && <Panel title={`Bin breakdown · ${activeMonth}`}><DataTable columns={cols} rows={result.bins} /></Panel>}
 
-      {result && <DataTable columns={cols} rows={result.bins} />}
+      <Panel title="Contribution by bin over time" sub="stacked monthly revenue">
+        <BarsChart data={trend} xKey="month" stacked height={300} series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} />
+      </Panel>
 
-      <section className="space-y-1"><h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Contribution by bin over time</h2>
-        <BarsChart data={trend} xKey="month" stacked series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} /></section>
-
-      <section className="space-y-2">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Revenue deciles & whales</h2>
-        {(() => {
-          const whale = whaleVsLongTail(txs, 0.2)
-          const deciles = revenueDeciles(txs)
-          return (
-            <>
-              <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4 [&>*]:border-0">
-                <KpiCard label="Whales (top 20%)" value={fmtNum(whale.whaleCount)} />
-                <KpiCard label="Whale revenue share" value={fmtPct(whale.whaleShare)} />
-                <KpiCard label="Long-tail count" value={fmtNum(whale.tailCount)} />
-                <KpiCard label="Long-tail share" value={fmtPct(whale.tailShare)} />
-              </div>
-              <div className="grid grid-cols-5 gap-px border border-line bg-line text-center md:grid-cols-10 [&>*]:border-0">
-                {deciles.map((d) => (
-                  <div key={d.decile} className="bg-paper p-2">
-                    <div className="font-mono text-[10px] text-ink-soft">D{d.decile}</div>
-                    <div className="font-mono text-sm font-medium tabular-nums">{fmtPct(d.share)}</div>
-                    <div className="font-mono text-[10px] text-ink-faint tabular-nums">{fmtNum(d.customers)}c</div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )
-        })()}
-      </section>
+      <Panel title="Revenue deciles & whales" sub="customers ranked into ten equal groups by revenue">
+        <div className="mb-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line md:grid-cols-4 [&>*]:border-0">
+          <KpiCard label="Whales (top 20%)" value={fmtNum(whale.whaleCount)} />
+          <KpiCard label="Whale revenue share" value={fmtPct(whale.whaleShare)} tone={whale.whaleShare > 0.6 ? 'neg' : 'default'} />
+          <KpiCard label="Long-tail count" value={fmtNum(whale.tailCount)} />
+          <KpiCard label="Long-tail share" value={fmtPct(whale.tailShare)} />
+        </div>
+        <div className="grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-line bg-line text-center md:grid-cols-10 [&>*]:border-0">
+          {deciles.map((d) => (
+            <div key={d.decile} className="bg-paper p-2">
+              <div className="font-mono text-[10px] text-ink-soft">D{d.decile}</div>
+              <div className="font-mono text-sm font-medium tabular-nums">{fmtPct(d.share)}</div>
+              <div className="font-mono text-[10px] tabular-nums text-ink-faint">{fmtNum(d.customers)}c</div>
+            </div>
+          ))}
+        </div>
+      </Panel>
     </div>
   )
 }

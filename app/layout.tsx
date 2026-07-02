@@ -13,6 +13,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${mono.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('ledger-theme');if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}` }} />
+      </head>
       <body>{children}</body>
     </html>
   )

@@ -83,6 +83,26 @@ export function paretoConcentration(txs: Transaction[]): { customersToEightyPct:
   return { customersToEightyPct: kTo80 / totals.length, top20Share: top20Rev / grand }
 }
 
+/**
+ * Cumulative concentration curve: customers ranked by revenue (desc), plotting cumulative
+ * customer-fraction (x) vs cumulative revenue-fraction (y). Down-sampled to ~60 points.
+ * The diagonal y=x is perfect equality; bow toward the top-left = concentration.
+ */
+export function paretoCurve(txs: Transaction[]): { x: number; y: number }[] {
+  const rev = customerTotals(txs).map((t) => t.revenue).filter((v) => v > 0)
+  const n = rev.length
+  const grand = rev.reduce((s, v) => s + v, 0)
+  if (!n || !grand) return []
+  const pts: { x: number; y: number }[] = [{ x: 0, y: 0 }]
+  const step = Math.max(1, Math.floor(n / 60))
+  let cum = 0
+  for (let i = 0; i < n; i++) {
+    cum += rev[i]
+    if ((i + 1) % step === 0 || i === n - 1) pts.push({ x: (i + 1) / n, y: cum / grand })
+  }
+  return pts
+}
+
 /** Gini coefficient of customer revenue inequality (0 equal … 1 concentrated). */
 export function gini(txs: Transaction[]): number | null {
   const vals = customerTotals(txs).map((t) => t.revenue).filter((v) => v > 0).sort((a, b) => a - b)
