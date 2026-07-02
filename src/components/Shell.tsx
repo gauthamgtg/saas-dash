@@ -21,9 +21,9 @@ export function Shell() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <ControlBar />
-        <main className="space-y-4 p-5">
+        <main className="mx-auto max-w-6xl space-y-6 p-6">
           {state.issues.length > 0 && <DataIssues issues={state.issues} />}
           {view}
         </main>

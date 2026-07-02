@@ -5,6 +5,8 @@ import { applyFilters } from '@/src/lib/dashboard'
 import { buildMatrix, movementSeries } from '@/src/lib/engine'
 import { BarsChart } from '@/src/components/ui/BarsChart'
 import { TrendChart } from '@/src/components/ui/TrendChart'
+import { ViewHeader } from '@/src/components/ui/ViewHeader'
+import { CHART } from '@/src/lib/theme'
 
 export function Growth() {
   const { state } = useApp()
@@ -19,14 +21,14 @@ export function Growth() {
   }, [txs, state.controls])
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">Growth — MRR movement</h1>
+    <div className="space-y-5">
+      <ViewHeader index="02" kicker="Movement" title="Growth" sub="MRR bridge — expansion & reactivation up, contraction & churn down" />
       <BarsChart data={data} xKey="month" stacked series={[
-        { key: 'New', color: '#22c55e' }, { key: 'Expansion', color: '#16a34a' },
-        { key: 'Reactivation', color: '#84cc16' }, { key: 'Contraction', color: '#f59e0b' },
-        { key: 'Churn', color: '#ef4444' },
+        { key: 'New', color: CHART.pos }, { key: 'Expansion', color: '#2f9e6e' },
+        { key: 'Reactivation', color: CHART.steel }, { key: 'Contraction', color: CHART.warn },
+        { key: 'Churn', color: CHART.neg },
       ]} />
-      <TrendChart data={data} xKey="month" series={[{ key: 'Net new', color: '#4f46e5' }]} />
+      <TrendChart data={data} xKey="month" series={[{ key: 'Net new', color: CHART.navy }]} />
     </div>
   )
 }

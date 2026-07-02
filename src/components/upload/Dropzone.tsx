@@ -45,21 +45,27 @@ export function Dropzone() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-8">
-      <h1 className="text-2xl font-bold">Upload revenue data</h1>
-      <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
-        className="block w-full rounded border-2 border-dashed border-slate-300 p-8 text-center" />
-      {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
+    <div className="mx-auto max-w-4xl space-y-8 px-8 py-14">
+      <header className="border-b border-line-strong pb-5">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-soft">Ledger · Revenue Analytics</div>
+        <h1 className="mt-1 font-display text-4xl font-bold tracking-tight text-ink">Upload revenue data</h1>
+        <p className="mt-2 max-w-xl text-sm text-ink-soft">Drop a CSV or Excel export of payment rows. Columns are auto-detected — confirm the mapping, set FX rates if multi-currency, and the full analytics compute in your browser. Nothing is uploaded.</p>
+      </header>
+      <label className="block cursor-pointer border border-dashed border-line-strong bg-paper p-10 text-center hover:border-navy">
+        <span className="font-mono text-sm text-ink-soft">Choose a .csv / .xlsx file</span>
+        <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="mt-3 block w-full text-sm" />
+      </label>
+      {error && <p className="border-l-2 border-neg bg-paper px-3 py-2 text-sm text-neg">{error}</p>}
       {parsed && mapping && (
         <>
-          <section><h2 className="mb-2 font-semibold">Map columns</h2>
+          <section><h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Map columns</h2>
             <MappingForm headers={parsed.headers} mapping={mapping} onChange={setMapping} /></section>
           {currencies.length > 1 && (
-            <section><h2 className="mb-2 font-semibold">Currency conversion</h2>
+            <section><h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Currency conversion</h2>
               <FxForm currencies={currencies} base={base} rates={rates} onBase={setBase}
                 onRate={(c, r) => setRates((x) => ({ ...x, [c]: r }))} /></section>
           )}
-          <button onClick={analyze} className="rounded bg-indigo-600 px-6 py-2 font-semibold text-white hover:bg-indigo-700">Analyze</button>
+          <button onClick={analyze} className="bg-navy px-8 py-2.5 font-mono text-sm uppercase tracking-wider text-white hover:opacity-90">Analyze →</button>
         </>
       )}
     </div>

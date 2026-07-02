@@ -5,6 +5,7 @@ import { applyFilters } from '@/src/lib/dashboard'
 import { buildMatrix, cohorts } from '@/src/lib/engine'
 import { Heatmap } from '@/src/components/ui/Heatmap'
 import { Callout } from '@/src/components/ui/Callout'
+import { ViewHeader } from '@/src/components/ui/ViewHeader'
 
 export function Cohorts() {
   const { state } = useApp()
@@ -16,13 +17,14 @@ export function Cohorts() {
 
   return (
     <div className="space-y-6">
-      <section>
-        <h1 className="mb-2 text-xl font-bold">Net revenue retention by cohort</h1>
+      <ViewHeader index="03" kicker="Retention" title="Cohorts" sub="Grouped by acquisition month, tracked by age" />
+      <section className="space-y-2">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Net revenue retention</h2>
         <Heatmap rows={net} />
         <Callout>Cell = cohort revenue at age M<sub>n</sub> ÷ its month-0 revenue. &gt;100% = net expansion.</Callout>
       </section>
-      <section>
-        <h2 className="mb-2 text-lg font-bold">Logo survival by cohort</h2>
+      <section className="space-y-2">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Logo survival</h2>
         <Heatmap rows={logo} />
       </section>
     </div>

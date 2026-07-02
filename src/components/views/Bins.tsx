@@ -6,6 +6,8 @@ import { buildMatrix, binAnalysis, binSeries } from '@/src/lib/engine'
 import type { BinDef } from '@/src/lib/types'
 import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { BarsChart } from '@/src/components/ui/BarsChart'
+import { ViewHeader } from '@/src/components/ui/ViewHeader'
+import { CHART } from '@/src/lib/theme'
 import { fmtMoney, fmtPct, fmtNum } from '@/src/lib/format'
 import type { BinRow } from '@/src/lib/engine'
 
@@ -40,36 +42,36 @@ export function Bins() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold">Revenue bins</h1>
+      <ViewHeader index="06" kicker="Distribution" title="Revenue Bins" sub="Customers bucketed by monthly revenue — bins are fully editable" />
 
-      <section className="rounded-lg border border-slate-200 bg-white p-3">
-        <div className="mb-2 text-sm font-semibold">Bin thresholds (min &lt; value ≤ max; blank max = open top)</div>
+      <section className="border border-line bg-paper p-4">
+        <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Bin thresholds (min &lt; value ≤ max; blank max = open top)</div>
         <div className="space-y-1">
           {state.bins.map((b, i) => (
             <div key={i} className="flex items-center gap-2 text-sm">
-              <input className="w-40 rounded border p-1" value={b.label} onChange={(e) => editBin(i, { label: e.target.value })} />
-              <input type="number" className="w-24 rounded border p-1" value={Number.isFinite(b.min) ? b.min : ''} placeholder="-∞"
+              <input className="w-40 border border-line-strong p-1" value={b.label} onChange={(e) => editBin(i, { label: e.target.value })} />
+              <input type="number" className="w-24 border border-line-strong p-1" value={Number.isFinite(b.min) ? b.min : ''} placeholder="-∞"
                 onChange={(e) => editBin(i, { min: e.target.value === '' ? -Infinity : Number(e.target.value) })} />
               <span>→</span>
-              <input type="number" className="w-24 rounded border p-1" value={b.max ?? ''} placeholder="∞"
+              <input type="number" className="w-24 border border-line-strong p-1" value={b.max ?? ''} placeholder="∞"
                 onChange={(e) => editBin(i, { max: e.target.value === '' ? null : Number(e.target.value) })} />
               <button onClick={() => removeBin(i)} className="text-red-500">✕</button>
             </div>
           ))}
         </div>
-        <button onClick={addBin} className="mt-2 rounded bg-slate-100 px-3 py-1 text-sm">+ Add bin</button>
+        <button onClick={addBin} className="mt-3 border border-line-strong px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-soft hover:bg-bone">+ Add bin</button>
       </section>
 
-      <label className="text-sm">Month
-        <select className="ml-2 rounded border p-1" value={activeMonth} onChange={(e) => setMonth(e.target.value)}>
+      <label className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Month
+        <select className="ml-2 px-2 py-1 text-sm normal-case tracking-normal" value={activeMonth} onChange={(e) => setMonth(e.target.value)}>
           {matrix.months.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
       </label>
 
       {result && <DataTable columns={cols} rows={result.bins} />}
 
-      <section><h2 className="mb-1 font-semibold">Contribution by bin over time</h2>
-        <BarsChart data={trend} xKey="month" stacked series={state.bins.map((b, i) => ({ key: b.label, color: ['#4f46e5', '#0891b2', '#7c3aed', '#f59e0b', '#ef4444', '#22c55e'][i % 6] }))} /></section>
+      <section className="space-y-1"><h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Contribution by bin over time</h2>
+        <BarsChart data={trend} xKey="month" stacked series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} /></section>
     </div>
   )
 }

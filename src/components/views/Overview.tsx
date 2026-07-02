@@ -5,6 +5,8 @@ import { applyFilters, overviewModel } from '@/src/lib/dashboard'
 import { buildMatrix, mrrOf, arpa } from '@/src/lib/engine'
 import { KpiCard } from '@/src/components/ui/KpiCard'
 import { TrendChart } from '@/src/components/ui/TrendChart'
+import { ViewHeader } from '@/src/components/ui/ViewHeader'
+import { CHART } from '@/src/lib/theme'
 import { fmtMoney, fmtNum, fmtPct } from '@/src/lib/format'
 
 export function Overview() {
@@ -17,9 +19,9 @@ export function Overview() {
   }, [txs, state.controls])
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">Overview — {model.month || 'no data'}</h1>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+    <div className="space-y-5">
+      <ViewHeader index="01" kicker="Snapshot" title="Overview" sub={model.month ? `As of ${model.month}` : 'No data'} />
+      <div className="grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-3 lg:grid-cols-6 [&>*]:border-0">
         <KpiCard label="MRR" value={fmtMoney(model.mrr)} />
         <KpiCard label="ARR" value={fmtMoney(model.arr)} />
         <KpiCard label="ARPA" value={fmtMoney(model.arpa)} />
@@ -27,7 +29,7 @@ export function Overview() {
         <KpiCard label="Logo churn (MoM)" value={fmtPct(model.logoChurn)} />
         <KpiCard label="Avg lifetime" value={model.avgLifetime == null ? '—' : `${model.avgLifetime.toFixed(1)} mo`} />
       </div>
-      <TrendChart data={trend} xKey="month" series={[{ key: 'MRR', color: '#4f46e5' }, { key: 'ARPA', color: '#0891b2' }]} />
+      <TrendChart data={trend} xKey="month" series={[{ key: 'MRR', color: CHART.navy }, { key: 'ARPA', color: CHART.steel }]} />
     </div>
   )
 }

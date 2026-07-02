@@ -1,5 +1,50 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-:root { color-scheme: light; }
-body { @apply bg-slate-50 text-slate-800; }
+
+:root {
+  color-scheme: light;
+  /* Ledger — Swiss financial broadsheet */
+  --bone: #f5f3ec;        /* canvas */
+  --paper: #fffefb;       /* panels */
+  --ink: #171310;         /* primary text (warm near-black) */
+  --ink-soft: #6d675c;    /* muted */
+  --ink-faint: #a8a294;   /* index numerals / hints */
+  --line: #e2ddd0;        /* hairline */
+  --line-strong: #cfc9ba;
+  --navy: #10263b;        /* structural accent */
+  --pos: #1f7a55;         /* positive / expansion */
+  --neg: #b23a2e;         /* negative / churn */
+  --warn: #b9822f;        /* contraction / caution */
+}
+
+body {
+  background-color: var(--bone);
+  color: var(--ink);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  /* faint vertical ledger rule texture */
+  background-image: linear-gradient(90deg, rgba(23, 19, 16, 0.02) 1px, transparent 1px);
+  background-size: 40px 100%;
+}
+
+/* All numerals render as aligned tabular mono figures */
+.tnum { font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+/* Native controls tuned to the hairline system */
+select, input, button, summary { font-family: inherit; }
+select, input {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  border-radius: 0;
+}
+select:focus, input:focus { outline: 2px solid var(--navy); outline-offset: -1px; }
+
+/* Recharts: mono, muted, hairline */
+.recharts-text { font-family: var(--font-mono), monospace; fill: var(--ink-soft); font-size: 11px; }
+.recharts-cartesian-grid line { stroke: var(--line); }
+.recharts-default-tooltip {
+  background: var(--navy) !important; border: none !important; border-radius: 0 !important;
+  font-family: var(--font-mono), monospace !important; font-size: 11px !important; color: #fff;
+}
+.recharts-tooltip-label, .recharts-tooltip-item { color: #fff !important; }
