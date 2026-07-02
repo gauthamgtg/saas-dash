@@ -8,16 +8,16 @@ export function FxForm({ currencies, base, rates, onBase, onRate }: {
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-2 text-sm">
-        <span className="font-semibold">Base currency</span>
-        <select className="rounded border border-slate-300 bg-white p-2" value={base} onChange={(e) => onBase(e.target.value)}>
+        <span className="font-mono text-[11px] uppercase tracking-wide text-ink">Base currency</span>
+        <select className="p-2" value={base} onChange={(e) => onBase(e.target.value)}>
           {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </label>
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         {currencies.map((c) => (
           <label key={c} className="flex items-center gap-2 text-sm">
-            <span className="w-14">{c} →</span>
-            <input type="number" step="0.0001" className="w-24 rounded border border-slate-300 p-1"
+            <span className="w-14 font-mono text-ink-soft">{c} →</span>
+            <input type="number" step="0.0001" className="w-24 p-1 tnum"
               value={c === base ? 1 : rates[c] ?? ''} disabled={c === base}
               onChange={(e) => onRate(c, Number(e.target.value))} />
           </label>

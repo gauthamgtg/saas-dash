@@ -55,3 +55,42 @@ export function hhi(txs: Transaction[]): number {
     return s + pct * pct
   }, 0)
 }
+
+/** HHI on any dimension's revenue shares (region/country/businessModel/currency), 0..10000. */
+export function dimensionHhi(txs: Transaction[], dim: DimKey): number {
+  const rows = revenueByDimension(txs, dim)
+  return rows.reduce((s, r) => s + Math.pow(r.share * 100, 2), 0)
+}
+
+/** Largest single currency's share of revenue (FX exposure). */
+export function dominantCurrencyShare(txs: Transaction[]): number {
+  const rows = revenueByDimension(txs, 'currency')
+  return rows.length ? rows[0].share : 0
+}
+
+/** Pareto: fraction of customers producing 80% of revenue, and the top-20%'s revenue share. */
+export function paretoConcentration(txs: Transaction[]): { customersToEightyPct: number | null; top20Share: number } {
+  const totals = customerTotals(txs).filter((t) => t.revenue > 0)
+  const grand = totals.reduce((s, t) => s + t.revenue, 0)
+  if (!grand || !totals.length) return { customersToEightyPct: null, top20Share: 0 }
+  let cum = 0, kTo80 = totals.length
+  for (let i = 0; i < totals.length; i++) {
+    cum += totals[i].revenue
+    if (cum / grand >= 0.8) { kTo80 = i + 1; break }
+  }
+  const top20Count = Math.max(1, Math.ceil(0.2 * totals.length))
+  const top20Rev = totals.slice(0, top20Count).reduce((s, t) => s + t.revenue, 0)
+  return { customersToEightyPct: kTo80 / totals.length, top20Share: top20Rev / grand }
+}
+
+/** Gini coefficient of customer revenue inequality (0 equal … 1 concentrated). */
+export function gini(txs: Transaction[]): number | null {
+  const vals = customerTotals(txs).map((t) => t.revenue).filter((v) => v > 0).sort((a, b) => a - b)
+  const n = vals.length
+  if (n < 2) return null
+  const total = vals.reduce((s, v) => s + v, 0)
+  if (!total) return null
+  let weighted = 0
+  for (let i = 0; i < n; i++) weighted += (i + 1) * vals[i] // ascending, 1-indexed
+  return (2 * weighted) / (n * total) - (n + 1) / n
+}

@@ -18,9 +18,9 @@ export function MappingForm({ headers, mapping, onChange }: {
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
       {FIELDS.map(({ field, label }) => (
         <label key={field} className="flex flex-col text-sm">
-          <span className={REQUIRED_FIELDS.includes(field) ? 'font-semibold' : ''}>{label}</span>
+          <span className={`font-mono text-[11px] uppercase tracking-wide ${REQUIRED_FIELDS.includes(field) ? 'text-ink' : 'text-ink-soft'}`}>{label}</span>
           <select
-            className="mt-1 rounded border border-slate-300 bg-white p-2"
+            className="mt-1 p-2"
             value={mapping[field] ?? ''}
             onChange={(e) => onChange({ ...mapping, [field]: e.target.value || null })}
           >
