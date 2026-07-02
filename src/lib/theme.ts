@@ -1,12 +1,15 @@
-// Chart palette (hex — Recharts fills). Mirrors the CSS tokens in globals.css.
+// Chart palette (hex — Recharts fills). Mirrors the CSS tokens in globals.css (Ledger Terminal, dark).
 export const CHART = {
-  navy: '#10263b',
-  ink: '#171310',
-  pos: '#1f7a55',
-  neg: '#b23a2e',
-  warn: '#b9822f',
-  steel: '#3f6f8c',
-  sand: '#b9a06a',
+  navy: '#34d39a',   // primary series = money-green accent
+  accent: '#34d39a',
+  ink: '#eef1f6',
+  pos: '#34d39a',
+  neg: '#f0685f',
+  warn: '#e0a84e',
+  steel: '#6ea8fe',
+  violet: '#b08cff',
+  sand: '#cdb989',
+  grid: 'rgba(255,255,255,0.07)',
   // ordered series palette for multi-bin / multi-series charts
-  series: ['#10263b', '#1f7a55', '#b9822f', '#3f6f8c', '#b23a2e', '#7d8ca3', '#8a5a44'],
+  series: ['#34d39a', '#6ea8fe', '#e0a84e', '#b08cff', '#f0685f', '#38c6c6', '#cdb989'],
 }

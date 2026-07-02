@@ -67,7 +67,7 @@ export function Bins() {
             </div>
           ))}
         </div>
-        <button onClick={addBin} className="mt-3 border border-line-strong px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-soft hover:bg-bone">+ Add bin</button>
+        <button onClick={addBin} className="mt-3 rounded-md border border-line-strong px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-soft hover:bg-paper-2 hover:text-ink">+ Add bin</button>
       </section>
 
       <label className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Month

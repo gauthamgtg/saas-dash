@@ -2,12 +2,12 @@ export type Column<T> = { key: string; header: string; render: (row: T) => React
 
 export function DataTable<T>({ columns, rows }: { columns: Column<T>[]; rows: T[] }) {
   return (
-    <div className="overflow-x-auto border border-line bg-paper">
+    <div className="overflow-x-auto rounded-xl border border-line bg-paper shadow-card">
       <table className="w-full text-sm">
-        <thead className="border-b border-line-strong">
+        <thead className="bg-paper-2">
           <tr>
             {columns.map((c) => (
-              <th key={c.key} className={`px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-soft ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
+              <th key={c.key} className={`px-3.5 py-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-soft ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
                 {c.header}
               </th>
             ))}
@@ -15,9 +15,9 @@ export function DataTable<T>({ columns, rows }: { columns: Column<T>[]; rows: T[
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-t border-line hover:bg-bone">
+            <tr key={i} className="border-t border-line transition-colors hover:bg-paper-2">
               {columns.map((c) => (
-                <td key={c.key} className={`px-3 py-2 ${c.align === 'right' ? 'text-right tnum' : ''}`}>{c.render(r)}</td>
+                <td key={c.key} className={`px-3.5 py-2.5 ${c.align === 'right' ? 'text-right tnum' : ''}`}>{c.render(r)}</td>
               ))}
             </tr>
           ))}

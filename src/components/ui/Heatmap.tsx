@@ -1,11 +1,11 @@
 export function Heatmap({ rows }: { rows: { label: string; size: number; values: (number | null)[] }[] }) {
   const maxLen = Math.max(0, ...rows.map((r) => r.values.length))
-  // navy-tinted scale via color-mix; deeper = higher retention
+  // emerald ramp over the dark panel; brighter = higher retention
   const bg = (v: number | null) =>
-    v == null ? 'transparent' : `color-mix(in srgb, var(--navy) ${Math.round(Math.min(1, v) * 100)}%, var(--paper))`
-  const fg = (v: number | null) => (v != null && v > 0.55 ? '#fffefb' : 'var(--ink)')
+    v == null ? 'transparent' : `color-mix(in srgb, var(--accent) ${Math.round(Math.min(1, v) * 92)}%, var(--paper-2))`
+  const fg = (v: number | null) => (v != null && v > 0.45 ? 'var(--bone)' : 'var(--ink)')
   return (
-    <div className="overflow-x-auto border border-line bg-paper p-3">
+    <div className="overflow-x-auto rounded-xl border border-line bg-paper p-3 shadow-card">
       <table className="border-collapse text-xs tnum">
         <thead>
           <tr className="text-ink-soft">

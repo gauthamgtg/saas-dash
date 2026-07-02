@@ -8,7 +8,7 @@ import type { DataIssue } from '@/src/lib/normalize'
 import type { Filters, DateRange } from '@/src/lib/dashboard'
 import type { ParsedFile } from '@/src/lib/parse'
 
-export type ViewId = 'overview' | 'growth' | 'trends' | 'cohorts' | 'segments' | 'customers' | 'health' | 'bins'
+export type ViewId = 'briefing' | 'overview' | 'growth' | 'trends' | 'cohorts' | 'segments' | 'customers' | 'health' | 'bins'
 
 type State = {
   parsed: ParsedFile | null
@@ -31,7 +31,7 @@ const DEFAULT_CONTROLS: Controls = {
 const initial: State = {
   parsed: null, mapping: null, fxRates: {}, transactions: null, issues: [],
   controls: DEFAULT_CONTROLS, filters: { regions: [], businessModels: [], currencies: [] },
-  range: { start: null, end: null }, bins: DEFAULT_BINS, view: 'overview',
+  range: { start: null, end: null }, bins: DEFAULT_BINS, view: 'briefing',
 }
 
 type Action =

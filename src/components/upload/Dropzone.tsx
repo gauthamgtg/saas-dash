@@ -7,6 +7,7 @@ import type { Mapping } from '@/src/lib/mapping'
 import { detectCurrencies } from '@/src/lib/fx'
 import type { FxRates } from '@/src/lib/fx'
 import { normalize } from '@/src/lib/normalize'
+import { sampleTransactions } from '@/src/lib/sampleData'
 import { useApp } from '@/src/state/AppContext'
 import { MappingForm } from './MappingForm'
 import { FxForm } from './FxForm'
@@ -44,20 +45,43 @@ export function Dropzone() {
     dispatch({ type: 'setData', transactions, issues })
   }
 
+  function loadSample() {
+    dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [] })
+  }
+
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-8 py-14">
-      <header className="border-b border-line-strong pb-5">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-soft">Ledger · Revenue Analytics</div>
-        <h1 className="mt-1 font-display text-4xl font-bold tracking-tight text-ink">Upload revenue data</h1>
-        <p className="mt-2 max-w-xl text-sm text-ink-soft">Drop a CSV or Excel export of payment rows. Columns are auto-detected — confirm the mapping, set FX rates if multi-currency, and the full analytics compute in your browser. Nothing is uploaded.</p>
+    <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-8 px-8 py-16">
+      <header className="rise">
+        <div className="flex items-center gap-2.5">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent font-display text-xl font-bold text-bone shadow-card">L</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Ledger · Revenue Terminal</div>
+        </div>
+        <h1 className="mt-5 font-display text-[2.75rem] font-bold leading-[1.05] tracking-tight text-ink">
+          Turn a payments export<br />into a boardroom-ready<br /><span className="text-accent">revenue picture.</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft">
+          Drop a CSV or Excel of payment rows. Columns auto-detect — confirm the mapping, set FX if multi-currency,
+          and MRR, retention, cohorts, movement, concentration and 90+ metrics compute entirely in your browser. Nothing is uploaded.
+        </p>
       </header>
-      <label className="block cursor-pointer border border-dashed border-line-strong bg-paper p-10 text-center hover:border-navy">
-        <span className="font-mono text-sm text-ink-soft">Choose a .csv / .xlsx file</span>
-        <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="mt-3 block w-full text-sm" />
-      </label>
-      {error && <p className="border-l-2 border-neg bg-paper px-3 py-2 text-sm text-neg">{error}</p>}
+
+      <div className="rise flex flex-col gap-3 sm:flex-row sm:items-stretch" style={{ animationDelay: '60ms' }}>
+        <label className="group flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong bg-paper p-8 text-center shadow-card transition-colors hover:border-accent">
+          <span className="font-display text-base font-medium text-ink">Choose a .csv / .xlsx file</span>
+          <span className="font-mono text-[11px] text-ink-soft">or drag it onto this panel</span>
+          <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="mt-2 block w-full text-xs text-ink-soft file:mr-3 file:rounded-md file:border-0 file:bg-paper-2 file:px-3 file:py-1.5 file:font-mono file:text-xs file:text-ink hover:file:bg-line-strong" />
+        </label>
+        <button onClick={loadSample}
+          className="flex flex-col items-center justify-center gap-1 rounded-xl border border-line bg-paper-2 px-7 py-6 text-center shadow-card transition-colors hover:border-accent">
+          <span className="font-display text-base font-medium text-ink">Try sample data</span>
+          <span className="font-mono text-[11px] text-ink-soft">18 months · 52 accounts →</span>
+        </button>
+      </div>
+
+      {error && <p className="rounded-lg border border-neg/40 border-l-2 border-l-neg bg-paper px-3 py-2 text-sm text-neg">{error}</p>}
+
       {parsed && mapping && (
-        <>
+        <div className="space-y-8">
           <section><h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Map columns</h2>
             <MappingForm headers={parsed.headers} mapping={mapping} onChange={setMapping} /></section>
           {currencies.length > 1 && (
@@ -65,8 +89,8 @@ export function Dropzone() {
               <FxForm currencies={currencies} base={base} rates={rates} onBase={setBase}
                 onRate={(c, r) => setRates((x) => ({ ...x, [c]: r }))} /></section>
           )}
-          <button onClick={analyze} className="bg-navy px-8 py-2.5 font-mono text-sm uppercase tracking-wider text-white hover:opacity-90">Analyze →</button>
-        </>
+          <button onClick={analyze} className="rounded-lg bg-accent px-8 py-2.5 font-mono text-sm font-medium uppercase tracking-wider text-bone transition-opacity hover:opacity-90">Analyze →</button>
+        </div>
       )}
     </div>
   )
