@@ -8,7 +8,10 @@
   },
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "repository": {
     "type": "git",
@@ -23,12 +26,23 @@
   },
   "homepage": "https://github.com/gauthamgtg/saas-dash#readme",
   "dependencies": {
+    "next": "^14.2.35",
     "papaparse": "^5.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-is": "^19.2.7",
+    "recharts": "^3.9.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",
     "@types/papaparse": "^5.5.2",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@types/react-is": "^19.2.0",
+    "autoprefixer": "^10.5.2",
+    "postcss": "^8.5.16",
+    "tailwindcss": "^3.4.19",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }
