@@ -1,7 +1,8 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
+import { DetailDrawer, type Drill } from '@/src/components/ui/DetailDrawer'
 import {
   revenueByDimension, hhi, topNShare, gini, paretoConcentration, paretoCurve,
   dominantCurrencyShare, dimensionHhi, newVsRepeatRevenue, buildMatrix,
@@ -21,6 +22,19 @@ const tint = (t: number) => `color-mix(in srgb, var(--accent) ${Math.round(t * 8
 export function Segments() {
   const { state } = useApp()
   const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
+  const [drill, setDrill] = useState<Drill>(null)
+
+  function drillCell(r: string, mo: string) {
+    const map = new Map<string, { name: string | null; region: string; model: string; rev: number }>()
+    for (const t of txs) {
+      const e = map.get(t.customerId) ?? { name: t.name, region: t.region ?? 'Unknown', model: t.businessModel ?? 'Unknown', rev: 0 }
+      e.rev += t.amountBase; map.set(t.customerId, e)
+    }
+    const rows = [...map.entries()].filter(([, e]) => e.region === r && e.model === mo).sort((a, z) => z[1].rev - a[1].rev)
+      .map(([id, e]) => ({ name: e.name ?? id, value: fmtMoney(e.rev) }))
+    setDrill({ title: `${r} · ${mo}`, subtitle: `${rows.length} accounts`, rows })
+  }
+
   const region = useMemo(() => revenueByDimension(txs, 'region'), [txs])
   const country = useMemo(() => revenueByDimension(txs, 'country'), [txs])
   const model = useMemo(() => revenueByDimension(txs, 'businessModel'), [txs])
@@ -74,7 +88,7 @@ export function Segments() {
         <Panel title="Revenue by country"><GeoPanel rows={country} limit={8} /></Panel>
       </div>
 
-      <Panel title="Region × business model" sub="revenue pivot — colour = intensity">
+      <Panel title="Region × business model" sub="revenue pivot — colour = intensity · click a cell for accounts">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -92,7 +106,9 @@ export function Segments() {
                     <td className="p-2 font-medium text-ink">{r}</td>
                     {pivot.models.map((mo) => {
                       const v = pivot.get(r, mo)
-                      return <td key={mo} className="p-2 text-right font-mono tabular-nums text-ink" style={{ background: v > 0 ? tint(v / pivot.max) : 'transparent' }}>{v > 0 ? fmtMoney(v) : '·'}</td>
+                      return <td key={mo} onClick={v > 0 ? () => drillCell(r, mo) : undefined}
+                        className={`p-2 text-right font-mono tabular-nums text-ink ${v > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+                        style={{ background: v > 0 ? tint(v / pivot.max) : 'transparent' }}>{v > 0 ? fmtMoney(v) : '·'}</td>
                     })}
                     <td className="p-2 text-right font-mono tabular-nums text-ink-soft">{fmtMoney(rowTotal)}</td>
                   </tr>
@@ -104,6 +120,8 @@ export function Segments() {
       </Panel>
 
       <Callout>HHI on the 0–10,000 scale (&gt;2,500 = concentrated). Lorenz/Gini/Pareto computed on lifetime per-customer revenue.</Callout>
+
+      <DetailDrawer drill={drill} onClose={() => setDrill(null)} />
     </div>
   )
 }

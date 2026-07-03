@@ -1,6 +1,6 @@
 export type Column<T> = { key: string; header: string; render: (row: T) => React.ReactNode; align?: 'right' | 'left' }
 
-export function DataTable<T>({ columns, rows }: { columns: Column<T>[]; rows: T[] }) {
+export function DataTable<T>({ columns, rows, onRowClick }: { columns: Column<T>[]; rows: T[]; onRowClick?: (row: T) => void }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -15,7 +15,8 @@ export function DataTable<T>({ columns, rows }: { columns: Column<T>[]; rows: T[
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-t border-line transition-colors hover:bg-paper-2">
+            <tr key={i} onClick={onRowClick ? () => onRowClick(r) : undefined}
+              className={`border-t border-line transition-colors hover:bg-paper-2 ${onRowClick ? 'cursor-pointer' : ''}`}>
               {columns.map((c) => (
                 <td key={c.key} className={`px-3.5 py-2.5 ${c.align === 'right' ? 'text-right tnum' : ''}`}>{c.render(r)}</td>
               ))}

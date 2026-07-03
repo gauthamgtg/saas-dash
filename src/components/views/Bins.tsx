@@ -2,9 +2,10 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
-import { buildMatrix, binAnalysis, binSeries, gini, paretoConcentration, hhi, revenueDeciles, whaleVsLongTail } from '@/src/lib/engine'
+import { buildMatrix, binAnalysis, binSeries, gini, paretoConcentration, hhi, revenueDeciles, whaleVsLongTail, get } from '@/src/lib/engine'
 import type { BinDef } from '@/src/lib/types'
 import { DataTable, type Column } from '@/src/components/ui/DataTable'
+import { DetailDrawer, type Drill } from '@/src/components/ui/DetailDrawer'
 import { BarsChart } from '@/src/components/ui/BarsChart'
 import { Panel } from '@/src/components/ui/Panel'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
@@ -20,7 +21,21 @@ export function Bins() {
   const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
   const matrix = useMemo(() => buildMatrix(txs, state.controls.mode), [txs, state.controls])
   const [month, setMonth] = useState('')
+  const [drill, setDrill] = useState<Drill>(null)
   const activeMonth = month || matrix.months[matrix.months.length - 1] || ''
+
+  function drillBin(b: BinRow) {
+    const def = state.bins.find((x) => x.label === b.label)
+    if (!def) return
+    const names = new Map<string, string | null>()
+    for (const t of txs) if (!names.has(t.customerId)) names.set(t.customerId, t.name)
+    const rows = matrix.customers
+      .map((c) => ({ c, v: get(matrix, c, activeMonth) }))
+      .filter(({ v }) => v > (def.min as number) && (def.max == null || v <= def.max))
+      .sort((a, z) => z.v - a.v)
+      .map(({ c, v }) => ({ name: names.get(c) ?? c, value: fmtMoney(v) }))
+    setDrill({ title: b.label, subtitle: `${rows.length} accounts · ${activeMonth}`, rows })
+  }
 
   const result = useMemo(() => (activeMonth ? binAnalysis(matrix, activeMonth, state.bins) : null), [matrix, activeMonth, state.bins])
   const trend = useMemo(() => binSeries(matrix, state.bins).map((r) => {
@@ -75,7 +90,7 @@ export function Bins() {
         <button onClick={addBin} className="mt-3 rounded-md border border-line-strong px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-soft hover:bg-paper-2 hover:text-ink">+ Add bin</button>
       </Panel>
 
-      {result && <Panel title={`Bin breakdown · ${activeMonth}`}><DataTable columns={cols} rows={result.bins} /></Panel>}
+      {result && <Panel title={`Bin breakdown · ${activeMonth}`} sub="click a bin to see its accounts"><DataTable columns={cols} rows={result.bins} onRowClick={drillBin} /></Panel>}
 
       <Panel title="Contribution by bin over time" sub="stacked monthly revenue">
         <BarsChart data={trend} xKey="month" stacked height={300} series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} />
@@ -98,6 +113,8 @@ export function Bins() {
           ))}
         </div>
       </Panel>
+
+      <DetailDrawer drill={drill} onClose={() => setDrill(null)} />
     </div>
   )
 }

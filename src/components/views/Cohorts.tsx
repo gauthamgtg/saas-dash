@@ -2,9 +2,10 @@
 import { useMemo } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
-import { buildMatrix, cohorts, realizedLtvByCohort, firstPurchaseToRepeat, timeToSecondPurchaseDays, initialDealSizes, median } from '@/src/lib/engine'
+import { buildMatrix, cohorts, realizedLtvByCohort, conversionFunnel, firstPurchaseToRepeat, timeToSecondPurchaseDays, initialDealSizes, median } from '@/src/lib/engine'
 import { Heatmap } from '@/src/components/ui/Heatmap'
 import { TrendChart } from '@/src/components/ui/TrendChart'
+import { Funnel } from '@/src/components/ui/Funnel'
 import { Panel } from '@/src/components/ui/Panel'
 import { Callout } from '@/src/components/ui/Callout'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
@@ -19,7 +20,9 @@ const avg = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length
 export function Cohorts() {
   const { state } = useApp()
   const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
-  const cs = useMemo(() => cohorts(buildMatrix(txs, state.controls.mode)), [txs, state.controls])
+  const m = useMemo(() => buildMatrix(txs, state.controls.mode), [txs, state.controls])
+  const cs = useMemo(() => cohorts(m), [m])
+  const funnel = useMemo(() => conversionFunnel(m, txs), [m, txs])
 
   const net = cs.map((c) => ({ label: c.cohortMonth, size: c.size, values: c.netRetention }))
   const logo = cs.map((c) => ({ label: c.cohortMonth, size: c.size, values: c.logoSurvival }))
@@ -37,7 +40,7 @@ export function Cohorts() {
     })
   }, [cs])
 
-  const ltv = useMemo(() => realizedLtvByCohort(buildMatrix(txs, state.controls.mode)), [txs, state.controls])
+  const ltv = useMemo(() => realizedLtvByCohort(m), [m])
   const dealMedian = useMemo(() => median(initialDealSizes(txs)), [txs])
 
   const ltvCols: Column<(typeof ltv)[number]>[] = [
@@ -56,6 +59,10 @@ export function Cohorts() {
         <KpiCard label="Median time to 2nd" value={timeToSecondPurchaseDays(txs) == null ? '—' : `${Math.round(timeToSecondPurchaseDays(txs)!)}d`} />
         <KpiCard label="Median initial deal" value={fmtMoney(dealMedian)} hint="first payment" />
       </div>
+
+      <Panel title="Activation funnel" sub="all customers → 2nd purchase → recurring → expanded">
+        <Funnel steps={funnel} />
+      </Panel>
 
       <Panel title="Retention curves" sub="all-cohort average by age (M0 = acquisition)">
         <TrendChart data={curve} xKey="age" height={260} showLegend

@@ -4,11 +4,13 @@ import { useApp } from '@/src/state/AppContext'
 import { applyFilters, overviewModel } from '@/src/lib/dashboard'
 import {
   buildMatrix, get, mrrOf, arpa, nrr, grr, quickRatio, movementSeries,
-  refundBridge, refundRate, invoiceStats, activeCustomers,
+  refundBridge, refundRate, invoiceStats, activeCustomers, mrrForecast, timelineMarkers,
 } from '@/src/lib/engine'
 import { addMonths } from '@/src/lib/types'
 import { KpiCard } from '@/src/components/ui/KpiCard'
 import { TrendChart } from '@/src/components/ui/TrendChart'
+import { ForecastChart } from '@/src/components/ui/ForecastChart'
+import { RefundBridge } from '@/src/components/ui/RefundBridge'
 import { Panel } from '@/src/components/ui/Panel'
 import { Sparkline } from '@/src/components/ui/Sparkline'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
@@ -44,6 +46,8 @@ export function Overview() {
 
     return {
       mrrChart, hasGhost, mrrSeries, activeSer, segs,
+      mrrObserved: months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i] })),
+      forecast: mrrForecast(m, 6), markers: timelineMarkers(m, state.controls.reactivationGapK),
       mrrDelta: rel(mrrOf(m, last), mrrOf(m, prev)), activeDelta: rel(activeCustomers(m, last), activeCustomers(m, prev)),
       arpaDelta: (() => { const a = arpa(m, last), b = arpa(m, prev); return a != null && b != null ? rel(a, b) : null })(),
       nrr: nrr(m, prev, last), grr: grr(m, prev, last), quick: quickRatio(movementSeries(m, { reactivationGapK: state.controls.reactivationGapK })),
@@ -64,10 +68,20 @@ export function Overview() {
         <KpiCard hero icon="⧗" iconColor="var(--warn)" label="Avg lifetime" value={model.avgLifetime == null ? '—' : `${model.avgLifetime.toFixed(1)} mo`} />
       </div>
 
-      <Panel title="MRR trajectory" sub={d.hasGhost ? 'solid = now · dashed = one year ago' : undefined}>
-        <TrendChart data={d.mrrChart} xKey="month" area height={280}
+      <Panel title="MRR trajectory" sub={d.hasGhost ? 'solid = now · dashed = one year ago · markers = notable months' : 'markers = notable months'}>
+        <TrendChart data={d.mrrChart} xKey="month" area height={280} markers={d.markers}
           series={[{ key: 'MRR', color: CHART.accent }, ...(d.hasGhost ? [{ key: 'MRR · yr ago', color: CHART.ink, ghost: true }] : [])]} />
       </Panel>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="MRR forecast" sub="modeled — trailing CMGR run-rate, ±uncertainty cone">
+          {d.forecast.length ? <ForecastChart observed={d.mrrObserved} forecast={d.forecast} height={260} />
+            : <p className="py-12 text-center font-mono text-xs text-ink-faint">Need more history to project</p>}
+        </Panel>
+        <Panel title="Gross → net revenue" sub="lifetime bookings after refunds">
+          <RefundBridge gross={d.bridge.gross} refunded={d.bridge.refunded} net={d.bridge.net} height={260} />
+        </Panel>
+      </div>
 
       <div>
         <h2 className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Retention & efficiency (MoM)</h2>
