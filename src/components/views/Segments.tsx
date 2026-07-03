@@ -9,6 +9,7 @@ import {
 } from '@/src/lib/engine'
 import { DonutChart } from '@/src/components/ui/DonutChart'
 import { GeoPanel } from '@/src/components/ui/GeoPanel'
+import { GeoMap } from '@/src/components/ui/GeoMap'
 import { ParetoChart } from '@/src/components/ui/ParetoChart'
 import { Panel } from '@/src/components/ui/Panel'
 import { KpiCard } from '@/src/components/ui/KpiCard'
@@ -84,9 +85,11 @@ export function Segments() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Revenue map" sub="by region · bubble size = share (stylized cartogram)"><GeoMap rows={region} height={280} /></Panel>
         <Panel title="Revenue by region"><DonutChart data={region.map((r) => ({ key: r.key, value: r.revenue }))} centerLabel="Total" height={190} /></Panel>
-        <Panel title="Revenue by country"><GeoPanel rows={country} limit={8} /></Panel>
       </div>
+
+      <Panel title="Revenue by country"><GeoPanel rows={country} limit={10} /></Panel>
 
       <Panel title="Region × business model" sub="revenue pivot — colour = intensity · click a cell for accounts">
         <div className="overflow-x-auto">

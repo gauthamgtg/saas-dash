@@ -108,3 +108,11 @@ option { background: var(--paper); color: var(--ink); }
 
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .rise { animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Export → print / save-as-PDF: strip chrome, full-bleed, no shadows */
+@media print {
+  nav, .no-print { display: none !important; }
+  main { max-width: none !important; padding: 12px !important; }
+  .shadow-card, .shadow-pop { box-shadow: none !important; }
+  .rise { animation: none !important; }
+}

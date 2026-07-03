@@ -27,7 +27,7 @@ describe('dimensionValues', () => {
 
 describe('overviewModel', () => {
   it('produces the latest-month headline KPIs', () => {
-    const model = overviewModel(scenario(), { mode: 'activity', includeRefunds: true, reactivationGapK: 1, dormancyDays: 90, atRiskStreak: 3, grossMargin: 0.8 })
+    const model = overviewModel(scenario(), { mode: 'activity', includeRefunds: true, reactivationGapK: 1, dormancyDays: 90, atRiskStreak: 3, grossMargin: 0.8, comparePeriod: 'yoy' })
     expect(model.month).toBe('2026-03')
     expect(model.mrr).toBe(600) // 150 + 200 + 250
     expect(model.arr).toBe(7200)

@@ -7,7 +7,7 @@ import {
   nrr, movementSeries, revenueByDimension, movementEvents,
 } from '@/src/lib/engine'
 import { insights } from '@/src/lib/insights'
-import { addMonths } from '@/src/lib/types'
+import { addMonths, COMPARE_OFFSET, COMPARE_LABEL } from '@/src/lib/types'
 import { KpiCard } from '@/src/components/ui/KpiCard'
 import { TrendChart } from '@/src/components/ui/TrendChart'
 import { DonutChart } from '@/src/components/ui/DonutChart'
@@ -43,8 +43,11 @@ export function Briefing() {
     const move = movementSeries(m, { reactivationGapK: state.controls.reactivationGapK })
     const lastMove = move[move.length - 1]
 
-    // MRR trend with a year-ago ghost when we have the history
-    const mrrChart = months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i], ...(i >= 12 ? { 'MRR · yr ago': mrrSeries[i - 12] } : {}) }))
+    // MRR trend with a prior-period ghost (comparison basis from controls)
+    const off = COMPARE_OFFSET[state.controls.comparePeriod]
+    const ghostKey = `MRR · ${COMPARE_LABEL[state.controls.comparePeriod]}`
+    const mrrChart = months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i], ...(off && i >= off ? { [ghostKey]: mrrSeries[i - off] } : {}) }))
+    const hasGhost = off > 0 && mrrChart.some((r) => ghostKey in r)
     const arrChart = months.map((mo, i) => ({ month: mo, ARR: mrrSeries[i] * 12 }))
 
     // MRR by plan (current month)
@@ -73,7 +76,7 @@ export function Briefing() {
       mrr: curMrr, arr: arrOf(m, last), totalCustomers: new Set(txs.map((t) => t.customerId)).size, active: curActive,
       churn, retention,
       mrrDelta: rel(curMrr, prevMrr), activeDelta: rel(curActive, prevActive),
-      mrrSeries, activeSer, netNewSer, mrrChart, arrChart, donut, top, topMax, cr,
+      mrrSeries, activeSer, netNewSer, mrrChart, hasGhost, ghostKey, arrChart, donut, top, topMax, cr,
       lastMove, opening: prevMrr,
       geo: revenueByDimension(txs, 'country'),
       events: movementEvents(m, txs, state.controls.reactivationGapK),
@@ -104,10 +107,10 @@ export function Briefing() {
 
       {/* Trends + plan split */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Panel className="lg:col-span-2" title="MRR trajectory" sub={d.mrrChart.some((r) => 'MRR · yr ago' in r) ? 'solid = now · dashed = one year ago' : undefined}
+        <Panel className="lg:col-span-2" title="MRR trajectory" sub={d.hasGhost ? `solid = now · dashed = ${d.ghostKey.replace('MRR · ', '')}` : undefined}
           right={<Delta value={d.mrrDelta} />}>
           <TrendChart data={d.mrrChart} xKey="month" area height={260}
-            series={[{ key: 'MRR', color: CHART.accent }, ...(d.mrrChart.some((r) => 'MRR · yr ago' in r) ? [{ key: 'MRR · yr ago', color: CHART.ink, ghost: true }] : [])]} />
+            series={[{ key: 'MRR', color: CHART.accent }, ...(d.hasGhost ? [{ key: d.ghostKey, color: CHART.ink, ghost: true }] : [])]} />
         </Panel>
         <Panel title="MRR by plan" sub={`as of ${d.month}`}>
           <DonutChart data={d.donut} centerLabel="Total MRR" height={200} />

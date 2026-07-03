@@ -15,12 +15,23 @@ import { Health } from '@/src/components/views/Health'
 import { Bins } from '@/src/components/views/Bins'
 
 export function Shell() {
-  const { state } = useApp()
+  const { state, dispatch } = useApp()
   if (!state.transactions) return <Dropzone />
   const view = {
     briefing: <Briefing />, overview: <Overview />, growth: <Growth />, trends: <Trends />, cohorts: <Cohorts />,
     segments: <Segments />, customers: <Customers />, health: <Health />, bins: <Bins />,
   }[state.view]
+
+  if (state.present) {
+    return (
+      <main className="mx-auto max-w-7xl space-y-6 p-8">
+        <button onClick={() => dispatch({ type: 'setPresent', present: false })}
+          className="no-print fixed right-4 top-4 z-50 rounded-md border border-line-strong bg-paper px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft shadow-card hover:text-ink">✕ Exit present</button>
+        {view}
+      </main>
+    )
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />

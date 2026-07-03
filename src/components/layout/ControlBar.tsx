@@ -4,8 +4,12 @@ import { useApp } from '@/src/state/AppContext'
 import { MRR_MODES } from '@/src/lib/types'
 import { monthRange } from '@/src/lib/types'
 import { dimensionValues } from '@/src/lib/dashboard'
-import type { MrrMode } from '@/src/lib/types'
+import type { MrrMode, ComparePeriod } from '@/src/lib/types'
 import { ThemeToggle } from '@/src/components/ui/ThemeToggle'
+
+const COMPARE: { v: ComparePeriod; label: string }[] = [
+  { v: 'none', label: 'off' }, { v: 'mom', label: 'MoM' }, { v: 'qoq', label: 'QoQ' }, { v: 'yoy', label: 'YoY' },
+]
 
 const LBL = 'font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft'
 const CTL = 'rounded-md px-2 py-1 text-sm'
@@ -25,7 +29,7 @@ export function ControlBar() {
   const multi = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
 
   return (
-    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line bg-bone/80 px-6 py-3 backdrop-blur-md">
+    <div className="no-print sticky top-0 z-10 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line bg-bone/80 px-6 py-3 backdrop-blur-md">
       <label className="flex items-center gap-1.5"><span className={LBL}>MRR</span>
         <select className={CTL} value={state.controls.mode}
           onChange={(e) => dispatch({ type: 'setControls', controls: { mode: e.target.value as MrrMode } })}>
@@ -36,6 +40,12 @@ export function ControlBar() {
         <input type="checkbox" className="accent-accent" checked={state.controls.includeRefunds}
           onChange={(e) => dispatch({ type: 'setControls', controls: { includeRefunds: e.target.checked } })} />
         <span className={LBL}>Refunds</span>
+      </label>
+      <label className="flex items-center gap-1.5"><span className={LBL}>Compare</span>
+        <select className={CTL} value={state.controls.comparePeriod}
+          onChange={(e) => dispatch({ type: 'setControls', controls: { comparePeriod: e.target.value as ComparePeriod } })}>
+          {COMPARE.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
+        </select>
       </label>
       <div className="h-4 w-px bg-line-strong" />
       <label className="flex items-center gap-1.5"><span className={LBL}>From</span>
@@ -73,7 +83,13 @@ export function ControlBar() {
           ))}
         </div>
       </details>
-      <div className="ml-auto"><ThemeToggle /></div>
+      <div className="ml-auto flex items-center gap-2">
+        <button onClick={() => window.print()} title="Export / print to PDF"
+          className="rounded-md border border-line-strong px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink">⤓ Export</button>
+        <button onClick={() => dispatch({ type: 'setPresent', present: true })} title="Present / read-only mode"
+          className="rounded-md border border-line-strong px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink">◱ Present</button>
+        <ThemeToggle />
+      </div>
     </div>
   )
 }

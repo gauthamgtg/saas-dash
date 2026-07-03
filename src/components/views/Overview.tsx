@@ -1,12 +1,13 @@
 'use client'
 import { useMemo } from 'react'
 import { useApp } from '@/src/state/AppContext'
+import { useAnnotations } from '@/src/state/annotations'
 import { applyFilters, overviewModel } from '@/src/lib/dashboard'
 import {
   buildMatrix, get, mrrOf, arpa, nrr, grr, quickRatio, movementSeries,
   refundBridge, refundRate, invoiceStats, activeCustomers, mrrForecast, timelineMarkers,
 } from '@/src/lib/engine'
-import { addMonths } from '@/src/lib/types'
+import { addMonths, COMPARE_OFFSET, COMPARE_LABEL } from '@/src/lib/types'
 import { KpiCard } from '@/src/components/ui/KpiCard'
 import { TrendChart } from '@/src/components/ui/TrendChart'
 import { ForecastChart } from '@/src/components/ui/ForecastChart'
@@ -23,8 +24,16 @@ const rel = (a: number, b: number) => (b ? (a - b) / b : null)
 
 export function Overview() {
   const { state } = useApp()
+  const { notes, add, clear } = useAnnotations()
   const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
   const model = useMemo(() => overviewModel(txs, state.controls), [txs, state.controls])
+
+  function addNote() {
+    const month = window.prompt('Annotate which month? (YYYY-MM)')?.trim()
+    if (!month) return
+    const label = window.prompt('Note text')?.trim()
+    if (label) add(month, label)
+  }
 
   const d = useMemo(() => {
     const m = buildMatrix(txs, state.controls.mode)
@@ -33,8 +42,10 @@ export function Overview() {
     const prev = months.length > 1 ? months[months.length - 2] : addMonths(last, -1)
     const mrrSeries = months.map((mo) => Math.round(mrrOf(m, mo)))
     const activeSer = months.map((mo) => activeCustomers(m, mo))
-    const mrrChart = months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i], ...(i >= 12 ? { 'MRR · yr ago': mrrSeries[i - 12] } : {}) }))
-    const hasGhost = mrrChart.some((r) => 'MRR · yr ago' in r)
+    const off = COMPARE_OFFSET[state.controls.comparePeriod]
+    const ghostKey = `MRR · ${COMPARE_LABEL[state.controls.comparePeriod]}`
+    const mrrChart = months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i], ...(off && i >= off ? { [ghostKey]: mrrSeries[i - off] } : {}) }))
+    const hasGhost = off > 0 && mrrChart.some((r) => ghostKey in r)
 
     // per-segment MRR small multiples
     const models = [...new Set(txs.map((t) => t.businessModel ?? 'Unknown'))]
@@ -45,7 +56,7 @@ export function Overview() {
     }).sort((a, b) => b.last - a.last)
 
     return {
-      mrrChart, hasGhost, mrrSeries, activeSer, segs,
+      mrrChart, hasGhost, ghostKey, mrrSeries, activeSer, segs,
       mrrObserved: months.map((mo, i) => ({ month: mo, MRR: mrrSeries[i] })),
       forecast: mrrForecast(m, 6), markers: timelineMarkers(m, state.controls.reactivationGapK),
       mrrDelta: rel(mrrOf(m, last), mrrOf(m, prev)), activeDelta: rel(activeCustomers(m, last), activeCustomers(m, prev)),
@@ -68,9 +79,13 @@ export function Overview() {
         <KpiCard hero icon="⧗" iconColor="var(--warn)" label="Avg lifetime" value={model.avgLifetime == null ? '—' : `${model.avgLifetime.toFixed(1)} mo`} />
       </div>
 
-      <Panel title="MRR trajectory" sub={d.hasGhost ? 'solid = now · dashed = one year ago · markers = notable months' : 'markers = notable months'}>
-        <TrendChart data={d.mrrChart} xKey="month" area height={280} markers={d.markers}
-          series={[{ key: 'MRR', color: CHART.accent }, ...(d.hasGhost ? [{ key: 'MRR · yr ago', color: CHART.ink, ghost: true }] : [])]} />
+      <Panel title="MRR trajectory" sub={d.hasGhost ? `solid = now · dashed = ${d.ghostKey.replace('MRR · ', '')} · markers = notable months` : 'markers = notable months'}
+        right={<div className="flex items-center gap-2">
+          {notes.length > 0 && <button onClick={clear} className="font-mono text-[10px] uppercase tracking-wider text-ink-faint hover:text-neg">clear notes</button>}
+          <button onClick={addNote} className="rounded-md border border-line-strong px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-soft hover:bg-paper-2 hover:text-ink">＋ note</button>
+        </div>}>
+        <TrendChart data={d.mrrChart} xKey="month" area height={280} markers={[...d.markers, ...notes]}
+          series={[{ key: 'MRR', color: CHART.accent }, ...(d.hasGhost ? [{ key: d.ghostKey, color: CHART.ink, ghost: true }] : [])]} />
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
