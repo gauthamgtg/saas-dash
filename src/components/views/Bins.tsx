@@ -2,11 +2,12 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
-import { buildMatrix, binAnalysis, binSeries, gini, paretoConcentration, hhi, revenueDeciles, whaleVsLongTail, get } from '@/src/lib/engine'
+import { buildMatrix, binAnalysis, binSeries, binMigration, gini, paretoConcentration, hhi, revenueDeciles, whaleVsLongTail, get } from '@/src/lib/engine'
 import type { BinDef } from '@/src/lib/types'
 import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { DetailDrawer, type Drill } from '@/src/components/ui/DetailDrawer'
 import { BarsChart } from '@/src/components/ui/BarsChart'
+import { SankeyChart } from '@/src/components/ui/SankeyChart'
 import { Panel } from '@/src/components/ui/Panel'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
 import { KpiCard } from '@/src/components/ui/KpiCard'
@@ -38,6 +39,8 @@ export function Bins() {
   }
 
   const result = useMemo(() => (activeMonth ? binAnalysis(matrix, activeMonth, state.bins) : null), [matrix, activeMonth, state.bins])
+  const prevMonth = matrix.months[matrix.months.indexOf(activeMonth) - 1] ?? ''
+  const migration = useMemo(() => (prevMonth ? binMigration(matrix, state.bins, prevMonth, activeMonth) : { nodes: [], links: [] }), [matrix, state.bins, prevMonth, activeMonth])
   const trend = useMemo(() => binSeries(matrix, state.bins).map((r) => {
     const row: Record<string, any> = { month: r.month }
     r.bins.forEach((b) => { row[b.label] = Math.round(b.revenue) })
@@ -91,6 +94,12 @@ export function Bins() {
       </Panel>
 
       {result && <Panel title={`Bin breakdown · ${activeMonth}`} sub="click a bin to see its accounts"><DataTable columns={cols} rows={result.bins} onRowClick={drillBin} /></Panel>}
+
+      {prevMonth && (
+        <Panel title="Bin migration" sub={`customers moving between bins · ${prevMonth} → ${activeMonth} (bin proxy — no plan IDs)`}>
+          <SankeyChart graph={migration} height={340} />
+        </Panel>
+      )}
 
       <Panel title="Contribution by bin over time" sub="stacked monthly revenue">
         <BarsChart data={trend} xKey="month" stacked height={300} series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} />

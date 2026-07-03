@@ -7,6 +7,7 @@ import type { RevEventType } from '@/src/lib/engine/events'
 import { addMonths } from '@/src/lib/types'
 import { BarsChart } from '@/src/components/ui/BarsChart'
 import { TrendChart } from '@/src/components/ui/TrendChart'
+import { DualAxisChart } from '@/src/components/ui/DualAxisChart'
 import { Waterfall } from '@/src/components/ui/Waterfall'
 import { Panel } from '@/src/components/ui/Panel'
 import { DetailDrawer, type Drill } from '@/src/components/ui/DetailDrawer'
@@ -45,6 +46,8 @@ export function Growth() {
     Reactivation: Math.round(s.reactivation), Contraction: -Math.round(s.contraction),
     Churn: -Math.round(s.churn), 'Net new': Math.round(s.netNew),
   }))
+  const netByMonth = new Map(series.map((s) => [s.month, Math.round(s.netNew)]))
+  const combo = m.months.map((mo) => ({ month: mo, MRR: Math.round(mrrOf(m, mo)), 'Net new': netByMonth.get(mo) ?? 0 }))
 
   const kpis = useMemo(() => {
     const last = m.months[m.months.length - 1] ?? ''
@@ -93,6 +96,12 @@ export function Growth() {
           { key: 'Reactivation', color: CHART.violet }, { key: 'Contraction', color: CHART.warn },
           { key: 'Churn', color: CHART.neg },
         ]} />
+      </Panel>
+
+      <Panel title="Net-new vs cumulative MRR" sub="net-new MRR bars (right) behind the cumulative MRR line (left)">
+        <DualAxisChart data={combo} xKey="month" height={300}
+          leftFmt={(v) => `${Math.round(v / 1000)}k`} rightFmt={(v) => `${Math.round(v / 1000)}k`}
+          series={[{ key: 'Net new', color: CHART.steel, axis: 'right', type: 'bar' }, { key: 'MRR', color: CHART.accent, axis: 'left', type: 'line' }]} />
       </Panel>
 
       <DetailDrawer drill={drill} onClose={() => setDrill(null)} />

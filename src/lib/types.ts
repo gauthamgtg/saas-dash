@@ -28,6 +28,10 @@ export type Matrix = {
 
 export type BinDef = { label: string; min: number; max: number | null } // (min, max]; max=null => open top
 
+export type ComparePeriod = 'none' | 'mom' | 'qoq' | 'yoy'
+export const COMPARE_OFFSET: Record<ComparePeriod, number> = { none: 0, mom: 1, qoq: 3, yoy: 12 }
+export const COMPARE_LABEL: Record<ComparePeriod, string> = { none: 'none', mom: '1mo ago', qoq: '1q ago', yoy: '1yr ago' }
+
 export type Controls = {
   mode: MrrMode
   includeRefunds: boolean
@@ -35,6 +39,7 @@ export type Controls = {
   dormancyDays: number
   atRiskStreak: number
   grossMargin: number // 0..1, LTV assumption
+  comparePeriod: ComparePeriod // prior-period comparison basis for ghost overlays
 }
 
 export const DEFAULT_BINS: BinDef[] = [
