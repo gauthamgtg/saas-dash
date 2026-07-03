@@ -3,10 +3,11 @@ import { AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveCont
 
 type Series = { key: string; color: string; name?: string; ghost?: boolean }
 type RefLine = { y: number; label: string; color?: string }
+type Marker = { month: string; label: string }
 
-export function TrendChart({ data, xKey, series, area, height = 288, refLines, showLegend }: {
+export function TrendChart({ data, xKey, series, area, height = 288, refLines, markers, showLegend }: {
   data: Record<string, any>[]; xKey: string; series: Series[]; area?: boolean; height?: number
-  refLines?: RefLine[]; showLegend?: boolean
+  refLines?: RefLine[]; markers?: Marker[]; showLegend?: boolean
 }) {
   const legend = showLegend ?? series.filter((s) => !s.ghost).length > 1
   const common = (
@@ -19,6 +20,10 @@ export function TrendChart({ data, xKey, series, area, height = 288, refLines, s
       {refLines?.map((r) => (
         <ReferenceLine key={r.label} y={r.y} stroke={r.color ?? 'var(--ink-faint)'} strokeDasharray="4 4"
           label={{ value: r.label, position: 'insideTopRight', fontSize: 10, fill: r.color ?? 'var(--ink-faint)' }} />
+      ))}
+      {markers?.map((mk, i) => (
+        <ReferenceLine key={`mk${i}`} x={mk.month} stroke="var(--ink-faint)" strokeDasharray="2 3"
+          label={{ value: mk.label, position: 'top', fontSize: 9, fill: 'var(--ink-soft)' }} />
       ))}
     </>
   )
