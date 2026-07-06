@@ -1,10 +1,10 @@
 'use client'
 import { useApp } from '@/src/state/AppContext'
 import { Dropzone } from '@/src/components/upload/Dropzone'
-import { DataIssues } from '@/src/components/upload/DataIssues'
 import { Sidebar } from '@/src/components/layout/Sidebar'
 import { ControlBar } from '@/src/components/layout/ControlBar'
 import { Briefing } from '@/src/components/views/Briefing'
+import { DataIssues } from '@/src/components/views/DataIssues'
 import { Overview } from '@/src/components/views/Overview'
 import { Growth } from '@/src/components/views/Growth'
 import { Trends } from '@/src/components/views/Trends'
@@ -18,7 +18,7 @@ export function Shell() {
   const { state, dispatch } = useApp()
   if (!state.transactions) return <Dropzone />
   const view = {
-    briefing: <Briefing />, overview: <Overview />, growth: <Growth />, trends: <Trends />, cohorts: <Cohorts />,
+    briefing: <Briefing />, issues: <DataIssues />, overview: <Overview />, growth: <Growth />, trends: <Trends />, cohorts: <Cohorts />,
     segments: <Segments />, customers: <Customers />, health: <Health />, bins: <Bins />,
   }[state.view]
 
@@ -38,7 +38,6 @@ export function Shell() {
       <div className="min-w-0 flex-1">
         <ControlBar />
         <main key={state.view} className="rise mx-auto max-w-7xl space-y-6 p-8">
-          {state.issues.length > 0 && <DataIssues issues={state.issues} />}
           {view}
         </main>
       </div>
