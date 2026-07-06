@@ -84,11 +84,15 @@ export function IssueFixer({ issues, mapping, onFix, onRemove, onRemoveMember, o
                   <span className="flex-1 truncate font-mono text-ink-soft">{it.reason}</span>
 
                   {isDuplicate(it) ? (
-                    it.paymentIds.map((pid) => (
-                      <button key={pid} onClick={() => onRemoveMember?.(pid)} className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-soft hover:text-neg">
-                        {pid} ✕
-                      </button>
-                    ))
+                    [...new Set(it.paymentIds)].map((pid) => {
+                      const count = it.paymentIds.filter((p) => p === pid).length
+                      return (
+                        <button key={pid} onClick={() => onRemoveMember?.(pid)} title={count > 1 ? `Removes all ${count} rows with this payment ID` : undefined}
+                          className="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-soft hover:text-neg">
+                          {pid}{count > 1 ? ` ×${count}` : ''} ✕
+                        </button>
+                      )
+                    })
                   ) : editingId === it.id ? (
                     <>
                       <input autoFocus type={inputType(it)} value={editValue} onChange={(e) => setEditValue(e.target.value)}
