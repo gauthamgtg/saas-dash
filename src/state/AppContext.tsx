@@ -4,18 +4,21 @@ import type { Transaction, Controls, BinDef } from '@/src/lib/types'
 import { DEFAULT_BINS } from '@/src/lib/types'
 import type { Mapping } from '@/src/lib/mapping'
 import type { FxRates } from '@/src/lib/fx'
-import type { DataIssue } from '@/src/lib/normalize'
+import type { BlockingIssue } from '@/src/lib/normalize'
+import type { DateOrder } from '@/src/lib/date'
 import type { Filters, DateRange } from '@/src/lib/dashboard'
 import type { ParsedFile } from '@/src/lib/parse'
 
-export type ViewId = 'briefing' | 'overview' | 'growth' | 'trends' | 'cohorts' | 'segments' | 'customers' | 'health' | 'bins'
+export type ViewId = 'briefing' | 'issues' | 'overview' | 'growth' | 'trends' | 'cohorts' | 'segments' | 'customers' | 'health' | 'bins'
 
 type State = {
   parsed: ParsedFile | null
   mapping: Mapping | null
   fxRates: FxRates
   transactions: Transaction[] | null
-  issues: DataIssue[]
+  issues: BlockingIssue[]
+  resolvedDateOrder: Exclude<DateOrder, 'auto'> | null
+  dismissedWarningIds: string[]
   controls: Controls
   filters: Filters
   range: DateRange
@@ -31,6 +34,7 @@ const DEFAULT_CONTROLS: Controls = {
 
 const initial: State = {
   parsed: null, mapping: null, fxRates: {}, transactions: null, issues: [],
+  resolvedDateOrder: null, dismissedWarningIds: [],
   controls: DEFAULT_CONTROLS, filters: { regions: [], businessModels: [], currencies: [] },
   range: { start: null, end: null }, bins: DEFAULT_BINS, view: 'briefing', present: false,
 }
@@ -44,6 +48,7 @@ function persist(s: State) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       transactions: s.transactions, issues: s.issues, mapping: s.mapping, fxRates: s.fxRates,
       controls: s.controls, filters: s.filters, range: s.range, bins: s.bins, view: s.view,
+      dismissedWarningIds: s.dismissedWarningIds, resolvedDateOrder: s.resolvedDateOrder,
     }))
   } catch { /* quota exceeded on very large uploads — skip persistence, app still works in-memory */ }
 }
@@ -63,6 +68,7 @@ function loadFromStorage(): State | null {
       controls: { ...DEFAULT_CONTROLS, ...(s.controls ?? {}) },
       filters: s.filters ?? initial.filters, range: s.range ?? initial.range,
       bins: s.bins ?? DEFAULT_BINS, view: s.view ?? 'briefing',
+      dismissedWarningIds: s.dismissedWarningIds ?? [], resolvedDateOrder: s.resolvedDateOrder ?? null,
     }
   } catch { return null }
 }
@@ -71,7 +77,12 @@ type Action =
   | { type: 'setParsed'; parsed: ParsedFile; mapping: Mapping }
   | { type: 'setMapping'; mapping: Mapping }
   | { type: 'setFx'; fxRates: FxRates }
-  | { type: 'setData'; transactions: Transaction[]; issues: DataIssue[] }
+  | { type: 'setData'; transactions: Transaction[]; issues: BlockingIssue[]; resolvedDateOrder: Exclude<DateOrder, 'auto'> }
+  | { type: 'resolveIssues'; results: ({ id: string; transaction: Transaction } | { id: string; issue: BlockingIssue })[] }
+  | { type: 'removeIssues'; ids: string[] }
+  | { type: 'patchTransactions'; patches: { paymentId: string; patch: Partial<Transaction> }[] }
+  | { type: 'removeTransactions'; paymentIds: string[] }
+  | { type: 'dismissWarnings'; ids: string[] }
   | { type: 'setControls'; controls: Partial<Controls> }
   | { type: 'setFilters'; filters: Partial<Filters> }
   | { type: 'setRange'; range: DateRange }
@@ -86,7 +97,22 @@ function reducer(s: State, a: Action): State {
     case 'setParsed': return { ...s, parsed: a.parsed, mapping: a.mapping }
     case 'setMapping': return { ...s, mapping: a.mapping }
     case 'setFx': return { ...s, fxRates: a.fxRates }
-    case 'setData': return { ...s, transactions: a.transactions, issues: a.issues }
+    case 'setData': return { ...s, transactions: a.transactions, issues: a.issues, resolvedDateOrder: a.resolvedDateOrder }
+    case 'resolveIssues': {
+      const resultById = new Map(a.results.map((r) => [r.id, r]))
+      const issues = s.issues
+        .filter((it) => !(resultById.get(it.id) && 'transaction' in resultById.get(it.id)!))
+        .map((it) => { const r = resultById.get(it.id); return r && 'issue' in r ? r.issue : it })
+      const newTransactions = a.results.filter((r): r is { id: string; transaction: Transaction } => 'transaction' in r).map((r) => r.transaction)
+      return { ...s, issues, transactions: [...(s.transactions ?? []), ...newTransactions] }
+    }
+    case 'removeIssues': return { ...s, issues: s.issues.filter((it) => !a.ids.includes(it.id)) }
+    case 'patchTransactions': {
+      const patchByPid = new Map(a.patches.map((p) => [p.paymentId, p.patch]))
+      return { ...s, transactions: (s.transactions ?? []).map((t) => patchByPid.has(t.paymentId) ? { ...t, ...patchByPid.get(t.paymentId) } : t) }
+    }
+    case 'removeTransactions': return { ...s, transactions: (s.transactions ?? []).filter((t) => !a.paymentIds.includes(t.paymentId)) }
+    case 'dismissWarnings': return { ...s, dismissedWarningIds: [...s.dismissedWarningIds, ...a.ids] }
     case 'setControls': return { ...s, controls: { ...s.controls, ...a.controls } }
     case 'setFilters': return { ...s, filters: { ...s.filters, ...a.filters } }
     case 'setRange': return { ...s, range: a.range }
@@ -105,7 +131,7 @@ const Ctx = createContext<{ state: State; dispatch: React.Dispatch<Action> } | n
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial)
   useEffect(() => { const s = loadFromStorage(); if (s) dispatch({ type: 'load', state: s }) }, [])
-  useEffect(() => { persist(state) }, [state.transactions, state.controls, state.filters, state.range, state.bins, state.view])
+  useEffect(() => { persist(state) }, [state.transactions, state.issues, state.dismissedWarningIds, state.controls, state.filters, state.range, state.bins, state.view])
   const value = useMemo(() => ({ state, dispatch }), [state])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
