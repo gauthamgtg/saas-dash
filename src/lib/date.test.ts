@@ -20,6 +20,11 @@ describe('parseDate', () => {
     expect(ymd(parseDate('2024-04-13T10:30:00Z'))).toBe('2024-04-13')
     expect(ymd(parseDate('2024/04/13'))).toBe('2024-04-13')
   })
+  it('strips a trailing clock time before parsing (dash/slash/month-name)', () => {
+    expect(ymd(parseDate('08-05-2026 05:16', 'dmy'))).toBe('2026-05-08')
+    expect(ymd(parseDate('08/05/2026 5:16 PM', 'dmy'))).toBe('2026-05-08')
+    expect(ymd(parseDate('13 Apr 2024 10:00:00'))).toBe('2024-04-13')
+  })
   it('parses month-name formats', () => {
     expect(ymd(parseDate('13 Apr 2024'))).toBe('2024-04-13')
     expect(ymd(parseDate('Apr 13, 2024'))).toBe('2024-04-13')

@@ -43,12 +43,15 @@ export function parseDate(raw: string | null | undefined, order: DateOrder = 'au
     return null
   }
 
+  // strip a trailing clock time from any format, e.g. "08-05-2026 05:16" or "13 Apr 2024 10:00:00"
+  const core = s.replace(/[T\s]+\d{1,2}:\d{2}(:\d{2})?(\.\d+)?\s*(?:[AaPp][Mm])?\s*Z?$/, '').trim() || s
+
   // ISO, optional time: 2024-04-13 / 2024-04-13T10:00:00Z
-  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/)
+  const iso = core.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
   if (iso) return mkUTC(+iso[1], +iso[2] - 1, +iso[3])
 
   // delimited numeric: / . - separators
-  const parts = s.split(/[/.\-]/).map((p) => p.trim())
+  const parts = core.split(/[/.\-]/).map((p) => p.trim())
   if (parts.length === 3 && parts.every((p) => /^\d+$/.test(p))) {
     const n = parts.map(Number)
     if (parts[0].length === 4) return fromParts(n[0], n[1], n[2], 'ymd')
@@ -58,7 +61,7 @@ export function parseDate(raw: string | null | undefined, order: DateOrder = 'au
   }
 
   // month-name: "13 Apr 2024" · "Apr 13, 2024" · "April 13 2024" · "13-Apr-2024"
-  const tokens = s.replace(/,/g, ' ').split(/[\s/\-]+/).filter(Boolean)
+  const tokens = core.replace(/,/g, ' ').split(/[\s/\-]+/).filter(Boolean)
   if (tokens.length === 3) {
     const mi = tokens.findIndex((t) => t.toLowerCase() in MONTHS)
     if (mi >= 0) {
