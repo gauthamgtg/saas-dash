@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { parseFile } from '@/src/lib/parse'
 import type { ParsedFile } from '@/src/lib/parse'
 import { autoDetect, missingRequired } from '@/src/lib/mapping'
-import type { Mapping } from '@/src/lib/mapping'
+import type { Mapping, ColumnField } from '@/src/lib/mapping'
 import { detectCurrencies } from '@/src/lib/fx'
 import type { FxRates } from '@/src/lib/fx'
 import { normalize } from '@/src/lib/normalize'
@@ -12,7 +12,7 @@ import { sampleTransactions } from '@/src/lib/sampleData'
 import { useApp } from '@/src/state/AppContext'
 import { MappingForm } from './MappingForm'
 import { FxForm } from './FxForm'
-import { IssueSummary } from './IssueSummary'
+import { IssueFixer } from './IssueFixer'
 
 const DATE_OPTS: { v: DateOrder; label: string }[] = [
   { v: 'auto', label: 'Auto-detect' }, { v: 'dmy', label: 'Day first · DD/MM/YYYY' },
@@ -29,6 +29,9 @@ export function Dropzone() {
   const [rates, setRates] = useState<FxRates>({})
   const [dateOrder, setDateOrder] = useState<DateOrder>('auto')
   const [error, setError] = useState('')
+  const [rowOverrides, setRowOverrides] = useState<Record<number, Record<string, string>>>({})
+  const [rowDateOrders, setRowDateOrders] = useState<Record<number, Exclude<DateOrder, 'auto'>>>({})
+  const [removedRows, setRemovedRows] = useState<Set<number>>(new Set())
 
   async function onFile(file: File) {
     try {
@@ -36,6 +39,7 @@ export function Dropzone() {
       const p = await parseFile(file)
       const m = autoDetect(p.headers)
       setParsed(p); setMapping(m)
+      setRowOverrides({}); setRowDateOrders({}); setRemovedRows(new Set())
       const curCol = m.currency
       const curs = curCol ? detectCurrencies(p.rows.map((r) => r[curCol])) : []
       setCurrencies(curs); setBase(curs[0] ?? '')
@@ -46,19 +50,53 @@ export function Dropzone() {
   const effectiveRates: FxRates = useMemo(() => (currencies.length ? { ...rates, [base]: 1 } : {}), [currencies, rates, base])
   const missing = mapping ? missingRequired(mapping) : []
 
-  // live validation preview — recomputes as mapping / date-format / FX change
+  // live validation preview — recomputes as mapping / date-format / FX / row-fixes change
   const preview = useMemo(() => {
     if (!parsed || !mapping || missing.length) return null
-    return normalize(parsed.rows, mapping, effectiveRates, { includeRefunds: state.controls.includeRefunds, dateOrder })
-  }, [parsed, mapping, missing.length, effectiveRates, dateOrder, state.controls.includeRefunds])
+    return normalize(parsed.rows, mapping, effectiveRates, { includeRefunds: state.controls.includeRefunds, dateOrder },
+      { overrides: rowOverrides, dateOrders: rowDateOrders, removed: removedRows })
+  }, [parsed, mapping, missing.length, effectiveRates, dateOrder, state.controls.includeRefunds, rowOverrides, rowDateOrders, removedRows])
+
+  function handleFix(ids: string[], patch: Partial<Record<ColumnField, string>>, order?: Exclude<DateOrder, 'auto'>) {
+    if (!preview || !mapping) return
+    const targets = preview.issues.filter((it) => ids.includes(it.id))
+    if (Object.keys(patch).length) {
+      setRowOverrides((prev) => {
+        const next = { ...prev }
+        for (const it of targets) {
+          const patched = { ...(next[it.rowIndex] ?? {}) }
+          for (const [field, value] of Object.entries(patch)) {
+            const col = mapping[field as ColumnField]
+            if (col) patched[col] = value
+          }
+          next[it.rowIndex] = patched
+        }
+        return next
+      })
+    }
+    if (order) {
+      setRowDateOrders((prev) => {
+        const next = { ...prev }
+        targets.forEach((it) => { next[it.rowIndex] = order })
+        return next
+      })
+    }
+  }
+
+  function handleRemove(ids: string[]) {
+    if (!preview) return
+    const targets = preview.issues.filter((it) => ids.includes(it.id))
+    setRemovedRows((prev) => new Set([...prev, ...targets.map((it) => it.rowIndex)]))
+  }
 
   function analyze() {
     if (!parsed || !mapping) return
     if (missing.length) { setError(`Map required fields: ${missing.join(', ')}`); return }
-    const res = preview ?? normalize(parsed.rows, mapping, effectiveRates, { includeRefunds: state.controls.includeRefunds, dateOrder })
+    const res = preview ?? normalize(parsed.rows, mapping, effectiveRates, { includeRefunds: state.controls.includeRefunds, dateOrder },
+      { overrides: rowOverrides, dateOrders: rowDateOrders, removed: removedRows })
     if (!res.transactions.length) { setError('No valid rows after normalization — check the mapping, date format, and FX rates below.'); return }
     dispatch({ type: 'setMapping', mapping }); dispatch({ type: 'setFx', fxRates: effectiveRates })
-    dispatch({ type: 'setData', transactions: res.transactions, issues: res.issues })
+    dispatch({ type: 'setData', transactions: res.transactions, issues: res.issues, resolvedDateOrder: res.resolvedDateOrder })
   }
 
   const valid = preview?.transactions.length ?? 0
@@ -86,7 +124,7 @@ export function Dropzone() {
           <span className="font-mono text-[11px] text-ink-soft">or drag it onto this panel</span>
           <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="mt-2 block w-full text-xs text-ink-soft file:mr-3 file:rounded-md file:border-0 file:bg-paper-2 file:px-3 file:py-1.5 file:font-mono file:text-xs file:text-ink hover:file:bg-line-strong" />
         </label>
-        <button onClick={() => dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [] })}
+        <button onClick={() => dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })}
           className="flex flex-col items-center justify-center gap-1 rounded-xl border border-line bg-paper-2 px-7 py-6 text-center shadow-card transition-colors hover:border-accent">
           <span className="font-display text-base font-medium text-ink">Try sample data</span>
           <span className="font-mono text-[11px] text-ink-soft">18 months · 52 accounts →</span>
@@ -127,8 +165,8 @@ export function Dropzone() {
                 </div>
                 {skipped > 0 && (
                   <>
-                    <p className="text-[11px] text-ink-soft">{skipped.toLocaleString()} of {preview.total.toLocaleString()} rows can’t be used. Fix the mapping or date format to recover them — or proceed with the {valid.toLocaleString()} valid rows.</p>
-                    <IssueSummary issues={preview.issues} />
+                    <p className="text-[11px] text-ink-soft">{skipped.toLocaleString()} of {preview.total.toLocaleString()} rows can’t be used. Fix them below, or proceed with the {valid.toLocaleString()} valid rows.</p>
+                    <IssueFixer issues={preview.issues} mapping={mapping} onFix={handleFix} onRemove={handleRemove} />
                   </>
                 )}
               </>
