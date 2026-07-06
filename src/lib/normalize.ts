@@ -2,10 +2,11 @@ import type { Mapping } from './mapping'
 import type { Transaction } from './types'
 import { monthKey } from './types'
 import { convert, type FxRates } from './fx'
+import { parseDate, detectDateOrder, type DateOrder } from './date'
 
 export type DataIssue = { rowIndex: number; reason: string; raw: Record<string, string> }
-export type NormalizeOpts = { includeRefunds: boolean }
-export type NormalizeResult = { transactions: Transaction[]; issues: DataIssue[] }
+export type NormalizeOpts = { includeRefunds: boolean; dateOrder?: DateOrder }
+export type NormalizeResult = { transactions: Transaction[]; issues: DataIssue[]; resolvedDateOrder: Exclude<DateOrder, 'auto'>; total: number }
 
 const TRUE = new Set(['true', '1', 'yes', 'y', 't', 'refund', 'refunded'])
 
@@ -15,10 +16,16 @@ function get(row: Record<string, string>, col: string | null): string | null {
   return v == null ? null : String(v).trim()
 }
 
+/** Handles currency symbols, thousands separators, and parenthesised negatives, e.g. "($1,250.00)" → -1250. */
 function parseAmount(s: string): number | null {
-  const cleaned = s.replace(/[$,\s]/g, '')
-  if (cleaned === '' || isNaN(Number(cleaned))) return null
-  return Number(cleaned)
+  let t = s.trim()
+  let neg = false
+  if (/^\(.*\)$/.test(t)) { neg = true; t = t.slice(1, -1) }
+  if (/-/.test(t)) neg = true
+  t = t.replace(/[^0-9.]/g, '') // strip currency symbols, commas, spaces, letters
+  if (t === '' || isNaN(Number(t))) return null
+  const n = Number(t)
+  return neg ? -Math.abs(n) : n
 }
 
 export function normalize(
@@ -29,10 +36,13 @@ export function normalize(
 ): NormalizeResult {
   const transactions: Transaction[] = []
   const issues: DataIssue[] = []
+  const resolvedDateOrder = !opts.dateOrder || opts.dateOrder === 'auto'
+    ? detectDateOrder(rows.map((r) => get(r, mapping.date)))
+    : opts.dateOrder
 
   rows.forEach((raw, i) => {
     const dateStr = get(raw, mapping.date)
-    const d = dateStr ? new Date(dateStr) : null
+    const d = parseDate(dateStr, resolvedDateOrder)
     if (!d || isNaN(d.getTime())) {
       issues.push({ rowIndex: i, reason: `Unparseable date: "${dateStr ?? ''}"`, raw })
       return
@@ -71,5 +81,5 @@ export function normalize(
     })
   })
 
-  return { transactions, issues }
+  return { transactions, issues, resolvedDateOrder, total: rows.length }
 }
