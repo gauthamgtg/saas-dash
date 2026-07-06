@@ -1,12 +1,48 @@
-import type { Mapping } from './mapping'
+import type { Mapping, ColumnField } from './mapping'
 import type { Transaction } from './types'
 import { monthKey } from './types'
 import { convert, type FxRates } from './fx'
 import { parseDate, detectDateOrder, type DateOrder } from './date'
 
-export type DataIssue = { rowIndex: number; reason: string; raw: Record<string, string> }
+type IssueBase = { id: string; reason: string }
+
+export type BlockingIssue = IssueBase & {
+  blocking: true
+  rowIndex: number
+  kind: 'date' | 'amount' | 'currency' | 'customerId'
+  field: ColumnField
+  raw: Record<string, string>
+}
+
+export type BlankFieldIssue = IssueBase & {
+  blocking: false
+  kind: 'blank'
+  field: 'invoiceNumber' | 'name' | 'country' | 'region' | 'businessModel'
+  paymentId: string
+}
+
+export type DuplicateIdIssue = IssueBase & {
+  blocking: false
+  kind: 'duplicateId'
+  field: 'paymentId' | 'invoiceNumber'
+  paymentIds: string[]
+}
+
+export type DuplicateRowIssue = IssueBase & {
+  blocking: false
+  kind: 'duplicateRow'
+  paymentIds: string[]
+}
+
+export type Issue = BlockingIssue | BlankFieldIssue | DuplicateIdIssue | DuplicateRowIssue
+
 export type NormalizeOpts = { includeRefunds: boolean; dateOrder?: DateOrder }
-export type NormalizeResult = { transactions: Transaction[]; issues: DataIssue[]; resolvedDateOrder: Exclude<DateOrder, 'auto'>; total: number }
+export type RowFixes = {
+  overrides?: Record<number, Record<string, string>>   // rowIndex -> {columnHeader: newRawValue}
+  dateOrders?: Record<number, Exclude<DateOrder, 'auto'>> // rowIndex -> order override, for re-parsing just this row
+  removed?: Set<number>                                  // rowIndexes to exclude entirely
+}
+export type NormalizeResult = { transactions: Transaction[]; issues: BlockingIssue[]; resolvedDateOrder: Exclude<DateOrder, 'auto'>; total: number }
 
 const TRUE = new Set(['true', '1', 'yes', 'y', 't', 'refund', 'refunded'])
 
@@ -28,48 +64,44 @@ function parseAmount(s: string): number | null {
   return neg ? -Math.abs(n) : n
 }
 
-export function normalize(
-  rows: Record<string, string>[],
+/** Validate + build one row. Pure — reused by the bulk `normalize()` loop and by single-row re-fix in the issue pipeline. */
+export function normalizeRow(
+  raw: Record<string, string>,
+  rowIndex: number,
   mapping: Mapping,
   rates: FxRates,
-  opts: NormalizeOpts,
-): NormalizeResult {
-  const transactions: Transaction[] = []
-  const issues: DataIssue[] = []
-  const resolvedDateOrder = !opts.dateOrder || opts.dateOrder === 'auto'
-    ? detectDateOrder(rows.map((r) => get(r, mapping.date)))
-    : opts.dateOrder
+  opts: { includeRefunds: boolean; dateOrder: Exclude<DateOrder, 'auto'> },
+): { transaction: Transaction } | { issue: BlockingIssue } {
+  const id = `row:${rowIndex}`
+  const dateStr = get(raw, mapping.date)
+  const d = parseDate(dateStr, opts.dateOrder)
+  if (!d || isNaN(d.getTime())) {
+    return { issue: { id, blocking: true, rowIndex, kind: 'date', field: 'date', reason: `Unparseable date: "${dateStr ?? ''}"`, raw } }
+  }
+  const amtStr = get(raw, mapping.amount) ?? ''
+  const amt = parseAmount(amtStr)
+  if (amt === null) {
+    return { issue: { id, blocking: true, rowIndex, kind: 'amount', field: 'amount', reason: `Non-numeric amount: "${amtStr}"`, raw } }
+  }
+  const currency = get(raw, mapping.currency)
+  const base = convert(Math.abs(amt), currency, rates)
+  if (base === null) {
+    return { issue: { id, blocking: true, rowIndex, kind: 'currency', field: 'currency', reason: `Unknown currency: "${currency ?? ''}" (add an FX rate)`, raw } }
+  }
+  const customerId = get(raw, mapping.customerId)
+  if (!customerId) {
+    return { issue: { id, blocking: true, rowIndex, kind: 'customerId', field: 'customerId', reason: 'Missing customer ID', raw } }
+  }
+  const refundFlag = (get(raw, mapping.refundFlag) ?? '').toLowerCase()
+  const isRefund = TRUE.has(refundFlag) || amt < 0
 
-  rows.forEach((raw, i) => {
-    const dateStr = get(raw, mapping.date)
-    const d = parseDate(dateStr, resolvedDateOrder)
-    if (!d || isNaN(d.getTime())) {
-      issues.push({ rowIndex: i, reason: `Unparseable date: "${dateStr ?? ''}"`, raw })
-      return
-    }
-    const amtStr = get(raw, mapping.amount) ?? ''
-    const amt = parseAmount(amtStr)
-    if (amt === null) {
-      issues.push({ rowIndex: i, reason: `Non-numeric amount: "${amtStr}"`, raw })
-      return
-    }
-    const currency = get(raw, mapping.currency)
-    const base = convert(Math.abs(amt), currency, rates)
-    if (base === null) {
-      issues.push({ rowIndex: i, reason: `Unknown currency: "${currency ?? ''}" (add an FX rate)`, raw })
-      return
-    }
-    const refundFlag = (get(raw, mapping.refundFlag) ?? '').toLowerCase()
-    const isRefund = TRUE.has(refundFlag) || amt < 0
-
-    if (isRefund && !opts.includeRefunds) return // gross view: ignore refunds
-
-    transactions.push({
-      paymentId: get(raw, mapping.paymentId) ?? String(i),
+  return {
+    transaction: {
+      paymentId: get(raw, mapping.paymentId) ?? String(rowIndex),
       invoiceNumber: get(raw, mapping.invoiceNumber),
       date: d,
       month: monthKey(d),
-      customerId: get(raw, mapping.customerId) ?? '',
+      customerId,
       name: get(raw, mapping.name),
       country: get(raw, mapping.country),
       region: get(raw, mapping.region),
@@ -78,7 +110,34 @@ export function normalize(
       amountNative: amt,
       amountBase: isRefund ? -Math.abs(base) : Math.abs(base),
       isRefund,
-    })
+    },
+  }
+}
+
+export function normalize(
+  rows: Record<string, string>[],
+  mapping: Mapping,
+  rates: FxRates,
+  opts: NormalizeOpts,
+  fixes?: RowFixes,
+): NormalizeResult {
+  const transactions: Transaction[] = []
+  const issues: BlockingIssue[] = []
+  const resolvedDateOrder = !opts.dateOrder || opts.dateOrder === 'auto'
+    ? detectDateOrder(rows.map((r) => get(r, mapping.date)))
+    : opts.dateOrder
+  const overrides = fixes?.overrides ?? {}
+  const dateOrders = fixes?.dateOrders ?? {}
+  const removed = fixes?.removed ?? new Set<number>()
+
+  rows.forEach((raw, i) => {
+    if (removed.has(i)) return
+    const patchedRaw = overrides[i] ? { ...raw, ...overrides[i] } : raw
+    const order = dateOrders[i] ?? resolvedDateOrder
+    const result = normalizeRow(patchedRaw, i, mapping, rates, { includeRefunds: opts.includeRefunds, dateOrder: order })
+    if ('issue' in result) { issues.push(result.issue); return }
+    if (result.transaction.isRefund && !opts.includeRefunds) return // gross view: ignore refunds
+    transactions.push(result.transaction)
   })
 
   return { transactions, issues, resolvedDateOrder, total: rows.length }
