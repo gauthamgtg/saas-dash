@@ -26,13 +26,18 @@
   },
   "homepage": "https://github.com/gauthamgtg/saas-dash#readme",
   "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "@vercel/blob": "^2.6.1",
+    "dotenv": "^17.4.2",
     "next": "^14.2.35",
     "papaparse": "^5.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-is": "^19.2.7",
     "recharts": "^3.9.1",
-    "xlsx": "^0.18.5"
+    "stripe": "^22.3.1",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",
@@ -42,6 +47,7 @@
     "@types/react-is": "^19.2.0",
     "autoprefixer": "^10.5.2",
     "postcss": "^8.5.16",
+    "prisma": "^7.8.0",
     "tailwindcss": "^3.4.19",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"

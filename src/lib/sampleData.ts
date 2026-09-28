@@ -20,8 +20,22 @@ const REGIONS: Record<string, string[]> = {
 const CCY_BY_REGION: Record<string, string> = { 'North America': 'USD', Europe: 'EUR', APAC: 'INR', LATAM: 'USD' }
 const RATE: Record<string, number> = { USD: 1, EUR: 1.08, GBP: 1.27, INR: 0.012 }
 const MODELS = ['Self-Serve', 'SMB', 'Enterprise', 'Marketplace']
+const PLAN_BY_MODEL: Record<string, string> = {
+  'Self-Serve': 'Starter $220/mo', SMB: 'Growth $700/mo', Marketplace: 'Scale $1,400/mo', Enterprise: 'Enterprise $2,600/mo',
+}
+const REPS = ['Ava Chen', 'Marcus Reid', 'Priya Nair', 'Diego Torres', 'Sofia Berg', 'Self-serve (no rep)']
 const PREFIX = ['Nova', 'Apex', 'Orbit', 'Vertex', 'Lumen', 'Quanta', 'Delta', 'Helix', 'Cobalt', 'Sable', 'Terra', 'Vela', 'Astra', 'Onyx', 'Flux', 'Zenith', 'Meridian', 'Halcyon', 'Cinder', 'Pallas']
 const SUFFIX = ['Labs', 'Systems', 'Group', 'Digital', 'Cloud', 'Works', 'Analytics', 'Retail', 'Health', 'Foods', 'Capital', 'Logistics']
+
+/** Upload-shaped rows of the demo dataset — download, edit with your own data, re-upload. Headers auto-detect. */
+export function sampleCsvRows(): Record<string, unknown>[] {
+  return sampleTransactions().map((t) => ({
+    payment_id: t.paymentId, invoice_number: t.invoiceNumber, date: t.date.toISOString().slice(0, 10),
+    customer_id: t.customerId, customer_name: t.name, country: t.country, region: t.region,
+    business_model: t.businessModel, plan: t.plan, sales_rep: t.salesRep, currency: t.currency,
+    amount: t.amountNative, refund_flag: t.isRefund ? 'true' : 'false',
+  }))
+}
 
 /** Realistic 18-month multi-region/model/currency payment log with churn, expansion, reactivation and refunds. */
 export function sampleTransactions(): Transaction[] {
@@ -41,6 +55,9 @@ export function sampleTransactions(): Transaction[] {
     const currency = model === 'Enterprise' && region === 'Europe' ? 'GBP' : CCY_BY_REGION[region]
     const name = `${pick(PREFIX)} ${pick(SUFFIX)}`
     const customerId = `C${String(c + 1).padStart(3, '0')}`
+    const plan = PLAN_BY_MODEL[model]
+    // self-serve accounts mostly have no rep; sold accounts get a stable owner
+    const salesRep = model === 'Self-Serve' && rand() < 0.7 ? 'Self-serve (no rep)' : pick(REPS.slice(0, 5))
     // Enterprise pays more; self-serve less. Base monthly revenue in USD.
     const tier = model === 'Enterprise' ? 2600 : model === 'SMB' ? 700 : model === 'Marketplace' ? 1400 : 220
     let base = Math.round(tier * (0.5 + rand() * 1.4))
@@ -68,7 +85,7 @@ export function sampleTransactions(): Transaction[] {
       const invoiceNumber = `INV-${inv++}`
       txs.push({
         paymentId: `P${pid++}`, invoiceNumber, date, month, customerId, name, country, region,
-        businessModel: model, currency, amountNative: Math.round(amountBase / rate), amountBase, isRefund: false,
+        businessModel: model, plan, salesRep, currency, amountNative: Math.round(amountBase / rate), amountBase, isRefund: false,
       })
       // occasional refund a month later, linked by invoice
       if (rand() < 0.03 && i + 1 < months.length) {
@@ -76,7 +93,7 @@ export function sampleTransactions(): Transaction[] {
         const rDate = new Date(`${rMonth}-05T00:00:00Z`)
         txs.push({
           paymentId: `P${pid++}`, invoiceNumber, date: rDate, month: rMonth, customerId, name, country, region,
-          businessModel: model, currency, amountNative: -Math.round(amountBase / rate), amountBase: -amountBase, isRefund: true,
+          businessModel: model, plan, salesRep, currency, amountNative: -Math.round(amountBase / rate), amountBase: -amountBase, isRefund: true,
         })
       }
       // churn check

@@ -30,7 +30,8 @@ export function timelineMarkers(m: Matrix, reactivationGapK = 1): TimelineMarker
   }
   if (best) {
     const firstMonth = m.months.find((mo) => mrrOf(m, mo) >= best!.threshold)
-    if (firstMonth) add(firstMonth, `$${Math.round(best.threshold / 1000)}k MRR`)
+    const label = best.threshold >= 1_000_000 ? `$${best.threshold / 1_000_000}M MRR` : `$${best.threshold / 1000}k MRR`
+    if (firstMonth) add(firstMonth, label)
   }
   return out
 }

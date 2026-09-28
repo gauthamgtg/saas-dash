@@ -15,13 +15,13 @@ export function InsightsPanel({ items }: { items: Insight[] }) {
         const c = toneColor[it.tone]
         return (
           <li key={i} className="flex items-start gap-2.5">
-            <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md font-mono text-xs"
+            <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs tabular-nums"
               style={{ color: c, background: tint(c) }}>{GLYPH[it.icon] ?? '•'}</span>
             <p className="text-[13px] leading-snug text-ink-soft">{it.text}</p>
           </li>
         )
       })}
-      {!items.length && <li className="font-mono text-xs text-ink-faint">No insights yet</li>}
+      {!items.length && <li className="text-xs text-ink-faint tabular-nums">No insights yet</li>}
     </ul>
   )
 }

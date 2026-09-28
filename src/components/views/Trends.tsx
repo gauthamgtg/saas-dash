@@ -1,5 +1,5 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
 import {
@@ -8,6 +8,7 @@ import {
 } from '@/src/lib/engine'
 import { TrendChart } from '@/src/components/ui/TrendChart'
 import { BarsChart } from '@/src/components/ui/BarsChart'
+import { PercentToggle } from '@/src/components/ui/PercentToggle'
 import { Panel } from '@/src/components/ui/Panel'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
 import { KpiCard } from '@/src/components/ui/KpiCard'
@@ -16,12 +17,13 @@ import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { CHART } from '@/src/lib/theme'
 import { fmtPct, fmtMoney } from '@/src/lib/format'
 
-const KSTRIP = 'grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line [&>*]:border-0'
+const KSTRIP = 'grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-card [&>*]:border-0'
 
 export function Trends() {
   const { state } = useApp()
-  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
+  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range, state.controls.includeRefunds), [state.transactions, state.filters, state.range, state.controls.includeRefunds])
   const m = useMemo(() => buildMatrix(txs, state.controls.mode), [txs, state.controls])
+  const [mixPercent, setMixPercent] = useState(true)
 
   const logos = useMemo(() => {
     const active = activeSeries(m), nl = newLogosSeries(m), net = netLogoSeries(m)
@@ -45,17 +47,18 @@ export function Trends() {
     <div className="space-y-4">
       <ViewHeader index="03" kicker="Time series" title="Trends" sub="Customer counts, acquisition, cadence & trajectory over time" />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <Panel title="Active customers"><TrendChart data={logos} xKey="month" area height={240} series={[{ key: 'Active', color: CHART.accent }]} /></Panel>
         <Panel title="New logos & net logo growth"><BarsChart data={logos} xKey="month" height={240} series={[{ key: 'New', color: CHART.pos }, { key: 'Net', color: CHART.steel }]} /></Panel>
       </div>
 
-      <Panel title="Currency mix" sub="base-currency revenue composition">
-        <BarsChart data={mix.rows as Record<string, number>[]} xKey="month" stacked height={260}
+      <Panel title="Currency mix" sub={mixPercent ? 'share of base-currency revenue' : 'base-currency revenue composition'}
+        right={<PercentToggle percent={mixPercent} onChange={setMixPercent} />}>
+        <BarsChart data={mix.rows as Record<string, number>[]} xKey="month" stacked percent={mixPercent} height={260}
           series={mix.currencies.map((c, i) => ({ key: c, color: CHART.series[i % CHART.series.length] }))} />
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <Panel title="New markets entered" sub="first-ever payment from a country, per month">
           <BarsChart data={markets} xKey="month" height={220} series={[{ key: 'newMarkets', name: 'New countries', color: CHART.warn }]} />
         </Panel>
@@ -69,7 +72,7 @@ export function Trends() {
           </Panel>
           <Panel title="T2D3 trajectory" sub="YoY ARR vs the 3·3·2·2·2 benchmark">
             {traj.length ? <DataTable columns={t2d3Cols} rows={traj} />
-              : <p className="py-4 font-mono text-xs text-ink-faint">Needs ≥24 months of history.</p>}
+              : <p className="py-4 text-xs text-ink-faint tabular-nums">Needs ≥24 months of history.</p>}
           </Panel>
         </div>
       </div>

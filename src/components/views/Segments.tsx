@@ -17,12 +17,12 @@ import { ViewHeader } from '@/src/components/ui/ViewHeader'
 import { Callout } from '@/src/components/ui/Callout'
 import { fmtPct, fmtNum, fmtMoney } from '@/src/lib/format'
 
-const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-4 [&>*]:border-0'
+const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-card md:grid-cols-4 [&>*]:border-0'
 const tint = (t: number) => `color-mix(in srgb, var(--accent) ${Math.round(t * 88)}%, var(--paper))`
 
 export function Segments() {
   const { state } = useApp()
-  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
+  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range, state.controls.includeRefunds), [state.transactions, state.filters, state.range, state.controls.includeRefunds])
   const [drill, setDrill] = useState<Drill>(null)
 
   function drillCell(r: string, mo: string) {
@@ -77,14 +77,14 @@ export function Segments() {
         <KpiCard label="Model HHI" value={fmtNum(Math.round(dimensionHhi(txs, 'businessModel')))} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         <Panel className="lg:col-span-2" title="Customer concentration" sub="Lorenz curve · bow above the diagonal = concentration risk">
-          {curve.length > 1 ? <ParetoChart points={curve} height={280} /> : <p className="py-12 text-center font-mono text-xs text-ink-faint">Not enough customers</p>}
+          {curve.length > 1 ? <ParetoChart points={curve} height={280} /> : <p className="py-12 text-center text-xs text-ink-faint tabular-nums">Not enough customers</p>}
         </Panel>
         <Panel title="Revenue by business model"><DonutChart data={model.map((r) => ({ key: r.key, value: r.revenue }))} centerLabel="Total" height={200} /></Panel>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <Panel title="Revenue map" sub="by region · bubble size = share (stylized cartogram)"><GeoMap rows={region} height={280} /></Panel>
         <Panel title="Revenue by region"><DonutChart data={region.map((r) => ({ key: r.key, value: r.revenue }))} centerLabel="Total" height={190} /></Panel>
       </div>
@@ -96,9 +96,9 @@ export function Segments() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="p-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-faint">Region</th>
-                {pivot.models.map((mo) => <th key={mo} className="p-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-faint">{mo}</th>)}
-                <th className="p-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-soft">Total</th>
+                <th className="p-2 text-left text-[12px] text-ink-faint font-medium">Region</th>
+                {pivot.models.map((mo) => <th key={mo} className="p-2 text-right text-[12px] text-ink-faint font-medium">{mo}</th>)}
+                <th className="p-2 text-right text-[12px] text-ink-soft font-medium">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -110,10 +110,10 @@ export function Segments() {
                     {pivot.models.map((mo) => {
                       const v = pivot.get(r, mo)
                       return <td key={mo} onClick={v > 0 ? () => drillCell(r, mo) : undefined}
-                        className={`p-2 text-right font-mono tabular-nums text-ink ${v > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+                        className={`p-2 text-right tabular-nums text-ink ${v > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
                         style={{ background: v > 0 ? tint(v / pivot.max) : 'transparent' }}>{v > 0 ? fmtMoney(v) : '·'}</td>
                     })}
-                    <td className="p-2 text-right font-mono tabular-nums text-ink-soft">{fmtMoney(rowTotal)}</td>
+                    <td className="p-2 text-right tabular-nums text-ink-soft">{fmtMoney(rowTotal)}</td>
                   </tr>
                 )
               })}

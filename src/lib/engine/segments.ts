@@ -1,6 +1,6 @@
 import type { Transaction } from '../types'
 
-type DimKey = 'region' | 'country' | 'businessModel' | 'currency'
+type DimKey = 'region' | 'country' | 'businessModel' | 'currency' | 'plan' | 'salesRep'
 
 export type SegmentRow = { key: string; revenue: number; share: number }
 

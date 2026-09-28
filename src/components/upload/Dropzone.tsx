@@ -8,11 +8,14 @@ import { detectCurrencies } from '@/src/lib/fx'
 import type { FxRates } from '@/src/lib/fx'
 import { normalize } from '@/src/lib/normalize'
 import type { DateOrder } from '@/src/lib/date'
-import { sampleTransactions } from '@/src/lib/sampleData'
+import { sampleTransactions, sampleCsvRows } from '@/src/lib/sampleData'
+import { downloadCsv } from '@/src/lib/csv'
 import { useApp } from '@/src/state/AppContext'
 import { MappingForm } from './MappingForm'
 import { FxForm } from './FxForm'
 import { IssueFixer } from './IssueFixer'
+import { Select } from '@/src/components/ui/Select'
+import { Landing, LandingNav, DropCard } from './Landing'
 
 const DATE_OPTS: { v: DateOrder; label: string }[] = [
   { v: 'auto', label: 'Auto-detect' }, { v: 'dmy', label: 'Day first · DD/MM/YYYY' },
@@ -32,11 +35,13 @@ export function Dropzone() {
   const [rowOverrides, setRowOverrides] = useState<Record<number, Record<string, string>>>({})
   const [rowDateOrders, setRowDateOrders] = useState<Record<number, Exclude<DateOrder, 'auto'>>>({})
   const [removedRows, setRemovedRows] = useState<Set<number>>(new Set())
+  const [fileName, setFileName] = useState('')
 
   async function onFile(file: File) {
     try {
       setError('')
       const p = await parseFile(file)
+      setFileName(file.name)
       const m = autoDetect(p.headers)
       setParsed(p); setMapping(m)
       setRowOverrides({}); setRowDateOrders({}); setRemovedRows(new Set())
@@ -102,55 +107,66 @@ export function Dropzone() {
   const valid = preview?.transactions.length ?? 0
   const skipped = preview?.issues.length ?? 0
 
+  const loadSample = () => dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })
+  const template = () => downloadCsv('ledger-sample-template', sampleCsvRows())
+
+  if (!parsed || !mapping) return <Landing onFile={onFile} onSample={loadSample} onTemplate={template} error={error} />
+
+  const step = missing.length ? 2 : valid > 0 ? 4 : 3
+  const STEPS = ['Upload', 'Map columns', currencies.length > 1 ? 'Currency' : 'Date format', 'Review & analyze']
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-8 px-8 py-16">
-      <header className="rise">
-        <div className="flex items-center gap-2.5">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent font-display text-xl font-bold text-accent-ink shadow-card">L</div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Ledger · Revenue Terminal</div>
+    <div className="min-h-screen">
+      <LandingNav onSample={loadSample} links={false} />
+      <div className="mx-auto max-w-4xl space-y-8 px-6 py-12">
+      <header className="rise space-y-6">
+        <div>
+          <div className="text-[13px] font-semibold text-accent">Import</div>
+          <h1 className="mt-1 text-[32px] font-semibold tracking-[-0.035em] text-ink">Set up your data</h1>
+          <p className="mt-1.5 text-[15px] text-ink-soft">Confirm how your columns map, then analyze. Everything stays in this browser tab.</p>
         </div>
-        <h1 className="mt-5 font-display text-[2.75rem] font-bold leading-[1.05] tracking-tight text-ink">
-          Turn a payments export<br />into a boardroom-ready<br /><span className="text-accent">revenue picture.</span>
-        </h1>
-        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-          Drop a CSV or Excel of payment rows. Columns auto-detect — confirm the mapping, set FX if multi-currency,
-          and 100+ metrics compute entirely in your browser. Nothing is uploaded.
-        </p>
+        <ol className="flex flex-wrap items-center gap-2">
+          {STEPS.map((t, i) => {
+            const n = i + 1, done = n < step, on = n === step
+            return (
+              <li key={t} className="flex items-center gap-2">
+                <span className={`flex h-8 items-center gap-2 rounded-full border pl-1 pr-3 text-[13px] font-medium ${on ? 'border-accent bg-navy text-accent' : done ? 'border-line bg-paper text-ink' : 'border-line bg-paper text-ink-faint'}`}>
+                  <span className={`grid h-6 w-6 place-items-center rounded-full text-[11.5px] font-semibold ${done || on ? 'bg-accent text-accent-ink' : 'bg-paper-2 text-ink-faint'}`}>{done ? '✓' : n}</span>
+                  {t}
+                </span>
+                {n < STEPS.length && <span className="h-px w-4 bg-line-strong" />}
+              </li>
+            )
+          })}
+        </ol>
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-paper p-4 shadow-card">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-navy text-[12.5px] font-semibold text-accent">{fileName.split('.').pop()}</span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[14.5px] font-semibold text-ink">{fileName}</div>
+            <div className="text-[13px] text-ink-soft">{parsed.rows.length.toLocaleString()} rows · {parsed.headers.length} columns detected</div>
+          </div>
+          <div className="w-full sm:w-64"><DropCard onFile={onFile} compact /></div>
+        </div>
       </header>
 
-      <div className="rise flex flex-col gap-3 sm:flex-row sm:items-stretch" style={{ animationDelay: '60ms' }}>
-        <label className="group flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong bg-paper p-8 text-center shadow-card transition-colors hover:border-accent">
-          <span className="font-display text-base font-medium text-ink">Choose a .csv / .xlsx file</span>
-          <span className="font-mono text-[11px] text-ink-soft">or drag it onto this panel</span>
-          <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="mt-2 block w-full text-xs text-ink-soft file:mr-3 file:rounded-md file:border-0 file:bg-paper-2 file:px-3 file:py-1.5 file:font-mono file:text-xs file:text-ink hover:file:bg-line-strong" />
-        </label>
-        <button onClick={() => dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })}
-          className="flex flex-col items-center justify-center gap-1 rounded-xl border border-line bg-paper-2 px-7 py-6 text-center shadow-card transition-colors hover:border-accent">
-          <span className="font-display text-base font-medium text-ink">Try sample data</span>
-          <span className="font-mono text-[11px] text-ink-soft">18 months · 52 accounts →</span>
-        </button>
-      </div>
-
-      {error && <p className="rounded-lg border border-neg/40 border-l-2 border-l-neg bg-paper px-3 py-2 text-sm text-neg">{error}</p>}
+      {error && <p role="alert" className="rounded-xl border border-neg bg-paper px-4 py-2.5 text-sm text-neg shadow-card">{error}</p>}
 
       {parsed && mapping && (
         <div className="space-y-8">
-          <section><h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Map columns</h2>
+          <section><h2 className="mb-3 text-[17px] font-semibold tracking-[-0.02em] text-ink">Map columns</h2>
             <MappingForm headers={parsed.headers} mapping={mapping} onChange={setMapping} /></section>
 
           {currencies.length > 1 && (
-            <section><h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Currency conversion</h2>
+            <section><h2 className="mb-3 text-[17px] font-semibold tracking-[-0.02em] text-ink">Currency conversion</h2>
               <FxForm currencies={currencies} base={base} rates={rates} onBase={setBase}
                 onRate={(c, r) => setRates((x) => ({ ...x, [c]: r }))} /></section>
           )}
 
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Validate</h2>
-              <label className="flex items-center gap-2 text-sm"><span className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft">Date format</span>
-                <select className="rounded-md px-2 py-1 text-sm" value={dateOrder} onChange={(e) => setDateOrder(e.target.value as DateOrder)}>
-                  {DATE_OPTS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
-                </select>
+              <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-ink">Review & analyze</h2>
+              <label className="flex items-center gap-2 text-sm"><span className="text-[13px] font-medium text-ink-soft">Date format</span>
+                <Select value={dateOrder} onChange={(v) => setDateOrder(v as DateOrder)} options={DATE_OPTS.map((o) => ({ value: o.v, label: o.label }))} />
               </label>
             </div>
 
@@ -158,10 +174,10 @@ export function Dropzone() {
               <p className="rounded-lg border border-warn/40 border-l-2 border-l-warn bg-paper px-3 py-2 text-sm text-warn">Map the required fields first: {missing.join(', ')}</p>
             ) : preview && (
               <>
-                <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line [&>*]:border-0">
-                  <div className="bg-paper p-4"><div className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft">Valid rows</div><div className="mt-1 font-mono text-2xl font-semibold tabular-nums text-pos">{valid.toLocaleString()}</div></div>
-                  <div className="bg-paper p-4"><div className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft">Skipped</div><div className={`mt-1 font-mono text-2xl font-semibold tabular-nums ${skipped ? 'text-warn' : 'text-ink'}`}>{skipped.toLocaleString()}</div></div>
-                  <div className="bg-paper p-4"><div className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft">Date order</div><div className="mt-1 font-mono text-sm tabular-nums text-ink">{dateOrder === 'auto' ? `auto → ${ORDER_NAME[preview.resolvedDateOrder]}` : ORDER_NAME[preview.resolvedDateOrder]}</div></div>
+                <div className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-card [&>*]:border-0">
+                  <div className="bg-paper p-4"><div className="text-[12.5px] font-medium text-ink-soft">Valid rows</div><div className="mt-1 text-[26px] font-semibold tabular-nums tracking-[-0.03em] text-pos">{valid.toLocaleString()}</div></div>
+                  <div className="bg-paper p-4"><div className="text-[12.5px] font-medium text-ink-soft">Skipped</div><div className={`mt-1 text-[26px] font-semibold tabular-nums tracking-[-0.03em] ${skipped ? 'text-warn' : 'text-ink'}`}>{skipped.toLocaleString()}</div></div>
+                  <div className="bg-paper p-4"><div className="text-[12.5px] font-medium text-ink-soft">Date order</div><div className="mt-1.5 text-[14px] font-medium text-ink">{dateOrder === 'auto' ? `auto → ${ORDER_NAME[preview.resolvedDateOrder]}` : ORDER_NAME[preview.resolvedDateOrder]}</div></div>
                 </div>
                 {skipped > 0 && (
                   <>
@@ -173,12 +189,13 @@ export function Dropzone() {
             )}
 
             <button onClick={analyze} disabled={!preview || valid === 0}
-              className="rounded-lg bg-accent px-8 py-2.5 font-mono text-sm font-medium uppercase tracking-wider text-accent-ink transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
-              Analyze {valid > 0 ? `${valid.toLocaleString()} rows ` : ''}→
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-6 text-[14.5px] font-semibold text-accent-ink shadow-card transition-all hover:-translate-y-px hover:shadow-pop disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0">
+              Analyze {valid > 0 ? `${valid.toLocaleString()} rows` : ''} <span aria-hidden>→</span>
             </button>
           </section>
         </div>
       )}
+      </div>
     </div>
   )
 }

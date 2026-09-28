@@ -35,15 +35,15 @@ export function GeoMap({ rows, height = 300 }: { rows: Row[]; height?: number })
             return (
               <g key={s.label}>
                 <circle cx={s.cx} cy={s.cy} r={r} fill="var(--accent)" fillOpacity={0.18 + (s.share / maxShare) * 0.55} stroke="var(--accent)" strokeOpacity={0.5} strokeWidth={0.4} />
-                <text x={s.cx} y={s.cy - r - 1.5} textAnchor="middle" fontSize="3.1" fontFamily="var(--font-mono)" fill="var(--ink-soft)">{s.label}</text>
-                <text x={s.cx} y={s.cy + 1.1} textAnchor="middle" fontSize="3.2" fontWeight="600" fontFamily="var(--font-mono)" fill="var(--ink)">{fmtPct(s.share, 0)}</text>
+                <text x={s.cx} y={s.cy - r - 1.5} textAnchor="middle" fontSize="3.1" fontFamily="var(--font-display)" fill="var(--ink-soft)">{s.label}</text>
+                <text x={s.cx} y={s.cy + 1.1} textAnchor="middle" fontSize="3.2" fontWeight="600" fontFamily="var(--font-display)" fill="var(--ink)">{fmtPct(s.share, 0)}</text>
               </g>
             )
           })}
         </svg>
       </div>
       {unmapped.length > 0 && (
-        <p className="mt-2 font-mono text-[10px] text-ink-faint">Unmapped: {unmapped.map((u) => `${u.key} (${fmtMoney(u.revenue)})`).join(' · ')}</p>
+        <p className="mt-2 text-[10px] text-ink-faint tabular-nums">Unmapped: {unmapped.map((u) => `${u.key} (${fmtMoney(u.revenue)})`).join(' · ')}</p>
       )}
     </div>
   )

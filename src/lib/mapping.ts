@@ -1,6 +1,6 @@
 export type ColumnField =
   | 'paymentId' | 'invoiceNumber' | 'date' | 'customerId' | 'name'
-  | 'country' | 'region' | 'businessModel' | 'currency' | 'amount'
+  | 'country' | 'region' | 'businessModel' | 'plan' | 'salesRep' | 'currency' | 'amount'
   | 'customerFlag' | 'refundFlag'
 
 export type Mapping = Record<ColumnField, string | null>
@@ -16,7 +16,9 @@ const SYNONYMS: Record<ColumnField, string[]> = {
   name: ['name', 'customername', 'accountname', 'company'],
   country: ['country'],
   region: ['region', 'geo', 'territory'],
-  businessModel: ['businessmodel', 'model', 'plan', 'producttype'],
+  businessModel: ['businessmodel', 'model', 'producttype'],
+  plan: ['plan', 'planname', 'planid', 'pricingplan', 'subscriptionplan', 'tier'],
+  salesRep: ['salesrep', 'salesperson', 'rep', 'accountowner', 'owner', 'accountexecutive', 'ae', 'salesowner'],
   currency: ['currency', 'curr', 'ccy'],
   amount: ['overallrevenue', 'revenue', 'amount', 'total', 'grossrevenue', 'netrevenue', 'mrr'],
   customerFlag: ['customerflag', 'newrepeat', 'customertype'],

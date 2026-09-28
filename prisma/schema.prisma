@@ -1,0 +1,104 @@
+// Prisma schema — Neon/Postgres compatible.
+// DATABASE_URL lives in prisma.config.ts / .env (never commit secrets).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  /// Bearer token hash (sha256). Raw token shown once at create.
+  tokenHash   String   @unique
+  role        String   @default("founder")
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stripe      StripeConnection?
+  trust       TrustProfile?
+  files       CloudFile[]
+  snapshots   MetricSnapshot[]
+}
+
+model StripeConnection {
+  id              String    @id @default(cuid())
+  workspaceId     String    @unique
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// key = restricted secret key; oauth = Stripe Connect (future)
+  mode            String    @default("key")
+  /// AES-GCM ciphertext of the restricted Stripe secret key (or oauth refresh token)
+  encryptedSecret String
+  stripeAccountId String?
+  accountEmail    String?
+  status          String    @default("connected") // connected | error | disconnected
+  lastSyncAt      DateTime?
+  lastError       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model TrustProfile {
+  id             String    @id @default(cuid())
+  workspaceId    String    @unique
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// Public URL slug: /trust/[publicSlug]
+  publicSlug     String    @unique
+  isPublic       Boolean   @default(false)
+  companyName    String
+  website        String?
+  /// Verification source: stripe | csv | hybrid
+  source         String    @default("csv")
+  verifiedMrr    Float     @default(0)
+  verifiedArr    Float     @default(0)
+  customerCount  Int       @default(0)
+  /// JSON number[] — last N months of MRR for sparkline
+  sparklineJson  String    @default("[]")
+  currency       String    @default("USD")
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model CloudFile {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  filename    String
+  mime        String
+  size        Int
+  /// payments | spend | pipeline | other
+  kind        String    @default("payments")
+  /// vercel blob URL or /api/files/[id]/download for local storage
+  url         String
+  storageKey  String
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+}
+
+/// Monthly anonymized snapshots from public Trust pages — fuels live peer benchmarks.
+model MetricSnapshot {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  month       String // YYYY-MM
+  arrBand     String
+  mrr         Float
+  arr         Float
+  customers   Int
+  /// Optional (only when workspace opts into richer sharing)
+  nrr         Float?
+  growth      Float?
+  logoChurn   Float?
+  quickRatio  Float?
+  createdAt   DateTime  @default(now())
+
+  @@unique([workspaceId, month])
+  @@index([arrBand, month])
+}

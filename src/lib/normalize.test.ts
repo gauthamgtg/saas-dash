@@ -5,7 +5,7 @@ import type { Mapping } from './mapping'
 const mapping: Mapping = {
   paymentId: 'pid', invoiceNumber: 'inv', date: 'Date', customerId: 'cid', name: 'Name',
   country: 'Country', region: 'Region', businessModel: 'BM', currency: 'Ccy',
-  amount: 'Amt', customerFlag: 'CF', refundFlag: 'RF',
+  amount: 'Amt', customerFlag: 'CF', refundFlag: 'RF', plan: null, salesRep: null,
 }
 const row = (o: Partial<Record<string, string>>) => ({
   pid: 'p', inv: 'i', Date: '2026-01-15', cid: 'c1', Name: 'A', Country: 'US',

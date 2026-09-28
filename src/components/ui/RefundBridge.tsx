@@ -11,7 +11,7 @@ export function RefundBridge({ gross, refunded, net, height = 260 }: { gross: nu
     { label: 'Net', range: [0, net] as [number, number], amount: net, color: CHART.accent },
   ]
   return (
-    <div className="w-full font-mono" style={{ height }}>
+    <div className="w-full tabular-nums" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={rows} margin={{ top: 18, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="2 5" vertical={false} stroke="var(--line)" />

@@ -20,7 +20,7 @@ export function ForecastChart({ observed, forecast, height = 280 }: {
     void first
   }
   return (
-    <div className="w-full font-mono" style={{ height }}>
+    <div className="w-full tabular-nums" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
           <defs>

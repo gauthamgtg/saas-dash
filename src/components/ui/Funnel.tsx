@@ -14,12 +14,12 @@ export function Funnel({ steps }: { steps: FunnelStep[] }) {
           <div key={s.label}>
             <div className="mb-1 flex items-baseline justify-between gap-2">
               <span className="text-[13px] text-ink">{s.label}</span>
-              <span className="font-mono text-[11px] tabular-nums text-ink-soft">{fmtNum(s.count)} · {fmtPct(s.pct, 0)}</span>
+              <span className="text-[11px] tabular-nums text-ink-soft">{fmtNum(s.count)} · {fmtPct(s.pct, 0)}</span>
             </div>
             <div className="relative h-6 overflow-hidden rounded-md bg-paper-2">
               <div className="flex h-full items-center rounded-md pl-2" style={{ width: `${Math.max(4, (s.count / top) * 100)}%`, background: CHART.series[i % CHART.series.length], opacity: 0.85 }} />
               {drop != null && drop > 0.001 && (
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[10px] tabular-nums text-neg">−{fmtPct(drop, 0)} drop</span>
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] tabular-nums text-neg">−{fmtPct(drop, 0)} drop</span>
               )}
             </div>
           </div>

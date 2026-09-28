@@ -9,7 +9,7 @@ export function DualAxisChart({ data, xKey, series, height = 260, leftFmt, right
   leftFmt?: (v: number) => string; rightFmt?: (v: number) => string
 }) {
   return (
-    <div className="w-full font-mono" style={{ height }}>
+    <div className="w-full tabular-nums" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="2 5" vertical={false} stroke="var(--line)" />
@@ -17,7 +17,7 @@ export function DualAxisChart({ data, xKey, series, height = 260, leftFmt, right
           <YAxis yAxisId="left" tickLine={false} axisLine={false} width={46} tickFormatter={leftFmt} />
           <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} width={46} tickFormatter={rightFmt} />
           <Tooltip cursor={{ stroke: 'var(--line-strong)', strokeDasharray: '3 3' }} />
-          <Legend iconType="plainline" wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
+          <Legend iconType="plainline" wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-display)' }} />
           {series.map((s) =>
             s.type === 'bar' ? (
               <Bar key={s.key} yAxisId={s.axis ?? 'left'} dataKey={s.key} name={s.name ?? s.key} fill={s.color} radius={[3, 3, 0, 0]} maxBarSize={28} />

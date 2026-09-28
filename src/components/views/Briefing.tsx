@@ -27,15 +27,16 @@ const rel = (cur: number, prev: number) => (prev ? (cur - prev) / prev : null)
 
 export function Briefing() {
   const { state } = useApp()
-  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
+  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range, state.controls.includeRefunds), [state.transactions, state.filters, state.range, state.controls.includeRefunds])
 
   const d = useMemo(() => {
     const m = buildMatrix(txs, state.controls.mode)
     const months = m.months
     const last = months[months.length - 1] ?? ''
     const prev = months.length > 1 ? months[months.length - 2] : addMonths(last, -1)
-    const nameById = new Map<string, string | null>(), modelById = new Map<string, string>()
-    for (const t of txs) { if (!nameById.has(t.customerId)) nameById.set(t.customerId, t.name); if (!modelById.has(t.customerId)) modelById.set(t.customerId, t.businessModel ?? 'Unknown') }
+    const nameById = new Map<string, string | null>(), planById = new Map<string, string>()
+    // plan preferred, business model as fallback — latest tx wins so plan changes show current state
+    for (const t of txs) { if (!nameById.has(t.customerId)) nameById.set(t.customerId, t.name); planById.set(t.customerId, t.plan ?? t.businessModel ?? 'Unknown') }
 
     const mrrSeries = months.map((mo) => Math.round(mrrOf(m, mo)))
     const activeSer = months.map((mo) => activeCustomers(m, mo))
@@ -50,13 +51,18 @@ export function Briefing() {
     const hasGhost = off > 0 && mrrChart.some((r) => ghostKey in r)
     const arrChart = months.map((mo, i) => ({ month: mo, ARR: mrrSeries[i] * 12 }))
 
-    // MRR by plan (current month)
-    const modelMrr = new Map<string, number>()
-    for (const t of txs) if (t.month === last && !t.isRefund) modelMrr.set(t.businessModel ?? 'Unknown', (modelMrr.get(t.businessModel ?? 'Unknown') ?? 0) + t.amountBase)
-    const donut = [...modelMrr.entries()].map(([key, value]) => ({ key, value })).sort((a, b) => b.value - a.value)
+    // MRR by plan (current month) — from the matrix so the total matches the headline MRR
+    const planMrr = new Map<string, number>()
+    for (const c of m.customers) {
+      const v = get(m, c, last)
+      if (v === 0) continue
+      const p = planById.get(c) ?? 'Unknown'
+      planMrr.set(p, (planMrr.get(p) ?? 0) + v)
+    }
+    const donut = [...planMrr.entries()].map(([key, value]) => ({ key, value })).sort((a, b) => b.value - a.value)
 
     // Top customers by current MRR
-    const top = m.customers.map((c) => ({ customerId: c, name: nameById.get(c) ?? c, model: modelById.get(c) ?? '—', mrr: get(m, c, last), prev: get(m, c, prev) }))
+    const top = m.customers.map((c) => ({ customerId: c, name: nameById.get(c) ?? c, model: planById.get(c) ?? '—', mrr: get(m, c, last), prev: get(m, c, prev) }))
       .filter((r) => r.mrr > 0).sort((a, b) => b.mrr - a.mrr).slice(0, 6)
     const topMax = Math.max(1, ...top.map((t) => t.mrr))
 
@@ -87,7 +93,7 @@ export function Briefing() {
   if (!d.hasData) return (
     <div className="space-y-5">
       <ViewHeader index="00" kicker="Executive Briefing" title="Briefing" />
-      <Panel><p className="font-mono text-sm text-ink-faint">No rows after the current filters. Widen the date range or clear filters.</p></Panel>
+      <Panel><p className="text-sm text-ink-faint tabular-nums">No rows after the current filters. Widen the date range or clear filters.</p></Panel>
     </div>
   )
 
@@ -106,7 +112,7 @@ export function Briefing() {
       </div>
 
       {/* Trends + plan split */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         <Panel className="lg:col-span-2" title="MRR trajectory" sub={d.hasGhost ? `solid = now · dashed = ${d.ghostKey.replace('MRR · ', '')}` : undefined}
           right={<Delta value={d.mrrDelta} />}>
           <TrendChart data={d.mrrChart} xKey="month" area height={260}
@@ -118,16 +124,16 @@ export function Briefing() {
       </div>
 
       {/* Movement waterfall + top customers + churn/retention */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         <Panel title="MRR movement" sub={`${d.prev} → ${d.month}`}
-          right={<span className="font-mono text-sm font-medium tabular-nums" style={{ color: (d.lastMove?.netNew ?? 0) >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{(d.lastMove?.netNew ?? 0) >= 0 ? '+' : ''}{fmtMoney(d.lastMove?.netNew ?? 0)}</span>}>
+          right={<span className="text-sm font-medium tabular-nums" style={{ color: (d.lastMove?.netNew ?? 0) >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{(d.lastMove?.netNew ?? 0) >= 0 ? '+' : ''}{fmtMoney(d.lastMove?.netNew ?? 0)}</span>}>
           {d.lastMove
             ? <Waterfall opening={d.opening} newMrr={d.lastMove.newMrr} expansion={d.lastMove.expansion} reactivation={d.lastMove.reactivation} contraction={d.lastMove.contraction} churn={d.lastMove.churn} height={260} />
-            : <p className="py-10 text-center font-mono text-xs text-ink-faint">Need ≥2 months</p>}
+            : <p className="py-10 text-center text-xs text-ink-faint tabular-nums">Need ≥2 months</p>}
         </Panel>
         <Panel title="Top customers by MRR">
           <table className="w-full text-sm">
-            <thead><tr className="text-left font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            <thead><tr className="text-left text-[12px] text-ink-faint font-medium">
               <th className="pb-2 font-medium">Customer</th><th className="pb-2 font-medium">Plan</th>
               <th className="pb-2 text-right font-medium">MRR</th><th className="pb-2 text-right font-medium">Δ</th></tr></thead>
             <tbody>
@@ -135,8 +141,8 @@ export function Briefing() {
                 <tr key={t.customerId} className="border-t border-line">
                   <td className="py-1.5 pr-2"><div className="flex items-center gap-2"><MiniBar value={t.mrr} max={d.topMax} width={26} /><span className="truncate">{t.name}</span></div></td>
                   <td className="py-1.5 pr-2 text-ink-soft">{t.model}</td>
-                  <td className="py-1.5 text-right font-mono tabular-nums">{fmtMoney(t.mrr)}</td>
-                  <td className="py-1.5 text-right">{t.prev > 0 ? <Delta value={rel(t.mrr, t.prev)} /> : <span className="font-mono text-[11px] text-pos">new</span>}</td>
+                  <td className="py-1.5 text-right tabular-nums">{fmtMoney(t.mrr)}</td>
+                  <td className="py-1.5 text-right">{t.prev > 0 ? <Delta value={rel(t.mrr, t.prev)} /> : <span className="text-[11px] text-pos tabular-nums">new</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -150,7 +156,7 @@ export function Briefing() {
       </div>
 
       {/* Activity + geo + insights */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         <Panel title="Recent activity" sub="individual revenue movements"><ActivityFeed events={d.events} limit={9} /></Panel>
         <Panel title="Revenue by country"><GeoPanel rows={d.geo} limit={7} /></Panel>
         <Panel title="Insights" sub="auto-generated"><InsightsPanel items={d.insights} /></Panel>

@@ -8,6 +8,8 @@ import { IssueFixer } from '@/src/components/upload/IssueFixer'
 import type { ColumnField } from '@/src/lib/mapping'
 import type { DateOrder } from '@/src/lib/date'
 import type { Transaction } from '@/src/lib/types'
+import type { Mapping } from '@/src/lib/mapping'
+import { ViewHeader } from '@/src/components/ui/ViewHeader'
 
 const isBlank = (it: Issue): it is Extract<Issue, { kind: 'blank' }> => !it.blocking && it.kind === 'blank'
 
@@ -53,18 +55,26 @@ export function DataIssues() {
     dispatch({ type: 'removeTransactions', paymentIds: [paymentId] })
   }
 
+  function handleRemoveMembers(paymentIds: string[]) {
+    dispatch({ type: 'removeTransactions', paymentIds })
+  }
+
   function handleDismiss(ids: string[]) {
     dispatch({ type: 'dismissWarnings', ids })
   }
 
+  // Warnings don't need the upload mapping (dismiss/remove only touch transactions) —
+  // only blocking-row editing does, so a stub is safe when none exist.
+  const hasBlocking = state.issues.length > 0
   return (
-    <section className="space-y-3">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">Data Issues</h2>
-      {state.mapping ? (
-        <IssueFixer issues={allIssues} mapping={state.mapping} onFix={handleFix} onRemove={handleRemove}
-          onRemoveMember={handleRemoveMember} onDismiss={handleDismiss} />
-      ) : (
+    <section className="space-y-4">
+      <ViewHeader index="!" kicker="Data quality" title="Data Issues"
+        sub={allIssues.length ? `${allIssues.length} open — fix, dismiss, or remove below` : 'nothing open — your dataset is clean'} />
+      {hasBlocking && !state.mapping ? (
         <p className="text-sm text-ink-soft">No column mapping on record — re-upload to fix remaining issues.</p>
+      ) : (
+        <IssueFixer issues={allIssues} mapping={state.mapping ?? ({} as Mapping)} onFix={handleFix} onRemove={handleRemove}
+          onRemoveMember={handleRemoveMember} onRemoveMembers={handleRemoveMembers} onDismiss={handleDismiss} />
       )}
     </section>
   )

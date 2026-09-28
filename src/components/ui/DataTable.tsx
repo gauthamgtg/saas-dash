@@ -7,7 +7,7 @@ export function DataTable<T>({ columns, rows, onRowClick }: { columns: Column<T>
         <thead className="bg-paper-2">
           <tr>
             {columns.map((c) => (
-              <th key={c.key} className={`px-3.5 py-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-soft ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
+              <th key={c.key} className={`px-3.5 py-2.5 text-[12px] font-medium text-ink-soft ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
                 {c.header}
               </th>
             ))}

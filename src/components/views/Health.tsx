@@ -14,7 +14,7 @@ import { KpiCard } from '@/src/components/ui/KpiCard'
 import { Callout } from '@/src/components/ui/Callout'
 import { fmtPct } from '@/src/lib/format'
 
-const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-4 [&>*]:border-0'
+const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-card md:grid-cols-4 [&>*]:border-0'
 type Row = { customerId: string; name: string | null; rfm: number; health: number; cadence: number | null; volatility: number | null; recency: number | null }
 
 function pctile(arr: number[], p: number): number | null {
@@ -25,21 +25,30 @@ function pctile(arr: number[], p: number): number | null {
 
 export function Health() {
   const { state } = useApp()
-  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
+  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range, state.controls.includeRefunds), [state.transactions, state.filters, state.range, state.controls.includeRefunds])
   const asOf = useMemo(() => new Date(Math.max(...txs.map((t) => t.date.getTime()), 0)), [txs])
   const m = useMemo(() => buildMatrix(txs, state.controls.mode), [txs, state.controls])
 
   const rfmMap = useMemo(() => new Map(rfm(txs, asOf).map((r) => [r.customerId, r.score])), [txs, asOf])
   const latency = useMemo(() => median(refundLatencies(txs)), [txs])
 
+  // group once so per-customer engine calls scan only that customer's rows, not all of `txs`
+  const byCustomer = useMemo(() => {
+    const map = new Map<string, typeof txs>()
+    for (const t of txs) map.set(t.customerId, [...(map.get(t.customerId) ?? []), t])
+    return map
+  }, [txs])
+  const txsOf = (c: string) => byCustomer.get(c) ?? []
+
   // full-population distributions
   const dist = useMemo(() => {
     const health: number[] = [], cadence: number[] = [], vol: number[] = [], rec: number[] = []
     for (const c of m.customers) {
-      health.push(healthScore(m, txs, c, asOf, state.controls.dormancyDays))
-      const cd = cadenceDays(txs, c); if (cd != null) cadence.push(cd)
+      const own = txsOf(c)
+      health.push(healthScore(m, own, c, asOf, state.controls.dormancyDays))
+      const cd = cadenceDays(own, c); if (cd != null) cadence.push(cd)
       const v = revenueVolatility(m, c); if (v != null) vol.push(v)
-      const r = recencyDays(txs, c, asOf); if (r != null) rec.push(r)
+      const r = recencyDays(own, c, asOf); if (r != null) rec.push(r)
     }
     const strip = (label: string, arr: number[], fmt: (n: number) => string) => ({
       label, p25: pctile(arr, 0.25), p50: pctile(arr, 0.5), p75: pctile(arr, 0.75), p90: pctile(arr, 0.9), fmt,
@@ -50,15 +59,18 @@ export function Health() {
       strip('Revenue volatility (CV)', vol, (n) => n.toFixed(2)),
       strip('Recency (d)', rec, (n) => `${Math.round(n)}d`),
     ]
-  }, [m, txs, asOf, state.controls.dormancyDays])
+  }, [m, byCustomer, asOf, state.controls.dormancyDays])
 
   const rows = useMemo<Row[]>(() =>
-    topCustomers(txs, 25).map((t) => ({
-      customerId: t.customerId, name: t.name, rfm: rfmMap.get(t.customerId) ?? 0,
-      health: healthScore(m, txs, t.customerId, asOf, state.controls.dormancyDays),
-      cadence: cadenceDays(txs, t.customerId), volatility: revenueVolatility(m, t.customerId),
-      recency: recencyDays(txs, t.customerId, asOf),
-    })), [txs, m, asOf, rfmMap, state.controls.dormancyDays])
+    topCustomers(txs, 25).map((t) => {
+      const own = txsOf(t.customerId)
+      return {
+        customerId: t.customerId, name: t.name, rfm: rfmMap.get(t.customerId) ?? 0,
+        health: healthScore(m, own, t.customerId, asOf, state.controls.dormancyDays),
+        cadence: cadenceDays(own, t.customerId), volatility: revenueVolatility(m, t.customerId),
+        recency: recencyDays(own, t.customerId, asOf),
+      }
+    }), [txs, byCustomer, m, asOf, rfmMap, state.controls.dormancyDays])
 
   const healthTone = (h: number) => (h >= 66 ? 'text-pos' : h >= 33 ? 'text-warn' : 'text-neg')
   const cols: Column<Row>[] = [
@@ -82,14 +94,14 @@ export function Health() {
 
       <Panel title="Distribution" sub="percentiles across all customers — denser than a single average" bodyClass="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead><tr className="text-left font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+          <thead><tr className="text-left text-[12px] text-ink-faint font-medium">
             <th className="pb-2 font-medium">Metric</th><th className="pb-2 text-right font-medium">p25</th>
             <th className="pb-2 text-right font-medium">median</th><th className="pb-2 text-right font-medium">p75</th><th className="pb-2 text-right font-medium">p90</th></tr></thead>
           <tbody>
             {dist.map((d) => (
               <tr key={d.label} className="border-t border-line">
                 <td className="py-2 text-ink">{d.label}</td>
-                {[d.p25, d.p50, d.p75, d.p90].map((v, i) => <td key={i} className="py-2 text-right font-mono tabular-nums text-ink-soft">{v == null ? '—' : d.fmt(v)}</td>)}
+                {[d.p25, d.p50, d.p75, d.p90].map((v, i) => <td key={i} className="py-2 text-right tabular-nums text-ink-soft">{v == null ? '—' : d.fmt(v)}</td>)}
               </tr>
             ))}
           </tbody>

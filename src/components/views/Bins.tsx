@@ -7,6 +7,8 @@ import type { BinDef } from '@/src/lib/types'
 import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { DetailDrawer, type Drill } from '@/src/components/ui/DetailDrawer'
 import { BarsChart } from '@/src/components/ui/BarsChart'
+import { PercentToggle } from '@/src/components/ui/PercentToggle'
+import { Select } from '@/src/components/ui/Select'
 import { SankeyChart } from '@/src/components/ui/SankeyChart'
 import { Panel } from '@/src/components/ui/Panel'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
@@ -15,14 +17,15 @@ import { CHART } from '@/src/lib/theme'
 import { fmtMoney, fmtPct, fmtNum } from '@/src/lib/format'
 import type { BinRow } from '@/src/lib/engine'
 
-const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-4 [&>*]:border-0'
+const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-card md:grid-cols-4 [&>*]:border-0'
 
 export function Bins() {
   const { state, dispatch } = useApp()
-  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
+  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range, state.controls.includeRefunds), [state.transactions, state.filters, state.range, state.controls.includeRefunds])
   const matrix = useMemo(() => buildMatrix(txs, state.controls.mode), [txs, state.controls])
   const [month, setMonth] = useState('')
   const [drill, setDrill] = useState<Drill>(null)
+  const [binPercent, setBinPercent] = useState(true)
   const activeMonth = month || matrix.months[matrix.months.length - 1] || ''
 
   function drillBin(b: BinRow) {
@@ -75,10 +78,8 @@ export function Bins() {
       </div>
 
       <Panel title="Bin thresholds" sub="min < value ≤ max · blank max = open top"
-        right={<label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-ink-soft">Month
-          <select className="px-2 py-1 text-sm normal-case tracking-normal" value={activeMonth} onChange={(e) => setMonth(e.target.value)}>
-            {matrix.months.map((mm) => <option key={mm} value={mm}>{mm}</option>)}
-          </select></label>}>
+        right={<label className="flex items-center gap-2 text-[12px] text-ink-soft font-medium">Month
+          <Select value={activeMonth} onChange={setMonth} options={matrix.months.map((mm) => ({ value: mm, label: mm }))} /></label>}>
         <div className="space-y-1">
           {state.bins.map((b, i) => (
             <div key={i} className="flex items-center gap-2 text-sm">
@@ -90,7 +91,7 @@ export function Bins() {
             </div>
           ))}
         </div>
-        <button onClick={addBin} className="mt-3 rounded-md border border-line-strong px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-soft hover:bg-paper-2 hover:text-ink">+ Add bin</button>
+        <button onClick={addBin} className="mt-3 rounded-md border border-line-strong px-3 py-1 text-[12.5px] text-ink-soft hover:bg-paper-2 hover:text-ink font-medium">+ Add bin</button>
       </Panel>
 
       {result && <Panel title={`Bin breakdown · ${activeMonth}`} sub="click a bin to see its accounts"><DataTable columns={cols} rows={result.bins} onRowClick={drillBin} /></Panel>}
@@ -101,8 +102,9 @@ export function Bins() {
         </Panel>
       )}
 
-      <Panel title="Contribution by bin over time" sub="stacked monthly revenue">
-        <BarsChart data={trend} xKey="month" stacked height={300} series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} />
+      <Panel title="Contribution by bin over time" sub={binPercent ? 'share of monthly revenue' : 'stacked monthly revenue'}
+        right={<PercentToggle percent={binPercent} onChange={setBinPercent} />}>
+        <BarsChart data={trend} xKey="month" stacked percent={binPercent} height={300} series={state.bins.map((b, i) => ({ key: b.label, color: CHART.series[i % CHART.series.length] }))} />
       </Panel>
 
       <Panel title="Revenue deciles & whales" sub="customers ranked into ten equal groups by revenue">
@@ -115,9 +117,9 @@ export function Bins() {
         <div className="grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-line bg-line text-center md:grid-cols-10 [&>*]:border-0">
           {deciles.map((d) => (
             <div key={d.decile} className="bg-paper p-2">
-              <div className="font-mono text-[10px] text-ink-soft">D{d.decile}</div>
-              <div className="font-mono text-sm font-medium tabular-nums">{fmtPct(d.share)}</div>
-              <div className="font-mono text-[10px] tabular-nums text-ink-faint">{fmtNum(d.customers)}c</div>
+              <div className="text-[10px] text-ink-soft tabular-nums">D{d.decile}</div>
+              <div className="text-sm font-medium tabular-nums">{fmtPct(d.share)}</div>
+              <div className="text-[10px] tabular-nums text-ink-faint">{fmtNum(d.customers)}c</div>
             </div>
           ))}
         </div>

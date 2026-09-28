@@ -14,12 +14,12 @@ import { DataTable, type Column } from '@/src/components/ui/DataTable'
 import { CHART } from '@/src/lib/theme'
 import { fmtMoney, fmtPct, fmtNum } from '@/src/lib/format'
 
-const KSTRIP = 'grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line [&>*]:border-0'
+const KSTRIP = 'grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-card [&>*]:border-0'
 const avg = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length
 
 export function Cohorts() {
   const { state } = useApp()
-  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range), [state.transactions, state.filters, state.range])
+  const txs = useMemo(() => applyFilters(state.transactions ?? [], state.filters, state.range, state.controls.includeRefunds), [state.transactions, state.filters, state.range, state.controls.includeRefunds])
   const m = useMemo(() => buildMatrix(txs, state.controls.mode), [txs, state.controls])
   const cs = useMemo(() => cohorts(m), [m])
   const funnel = useMemo(() => conversionFunnel(m, txs), [m, txs])

@@ -9,7 +9,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`
 export function ParetoChart({ points, height = 260 }: { points: { x: number; y: number }[]; height?: number }) {
   const data = points.map((p) => ({ x: p.x, y: p.y, eq: p.x }))
   return (
-    <div className="w-full font-mono" style={{ height }}>
+    <div className="w-full tabular-nums" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 6, right: 10, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="2 5" stroke="var(--line)" />

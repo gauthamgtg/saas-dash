@@ -5,10 +5,12 @@ import { addMonths } from './types'
 
 export type Filters = { regions: string[]; businessModels: string[]; currencies: string[] }
 export type DateRange = { start: string | null; end: string | null }
-type DimKey = 'region' | 'country' | 'businessModel' | 'currency'
+type DimKey = 'region' | 'country' | 'businessModel' | 'currency' | 'plan' | 'salesRep'
 
-export function applyFilters(txs: Transaction[], f: Filters, range: DateRange): Transaction[] {
+/** includeRefunds defaults true so callers that omit it (e.g. tests) keep the old gross-of-refunds behavior. */
+export function applyFilters(txs: Transaction[], f: Filters, range: DateRange, includeRefunds = true): Transaction[] {
   return txs.filter((t) => {
+    if (!includeRefunds && t.isRefund) return false
     if (f.regions.length && !f.regions.includes(t.region ?? 'Unknown')) return false
     if (f.businessModels.length && !f.businessModels.includes(t.businessModel ?? 'Unknown')) return false
     if (f.currencies.length && !f.currencies.includes(t.currency ?? 'Unknown')) return false

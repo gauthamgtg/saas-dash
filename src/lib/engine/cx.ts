@@ -5,14 +5,18 @@ import { recencyDays } from './customers'
 
 /** RFM scoring (1-5 each) from payments. Monetary/frequency exclude refunds. */
 export function rfm(txs: Transaction[], asOf: Date): { customerId: string; r: number; f: number; m: number; score: number }[] {
-  const ids = [...new Set(txs.map((t) => t.customerId))]
+  const byCustomer = new Map<string, Transaction[]>()
+  for (const t of txs) byCustomer.set(t.customerId, [...(byCustomer.get(t.customerId) ?? []), t])
+  const ids = [...byCustomer.keys()]
   const recency = new Map<string, number>()
   const freq = new Map<string, number>()
   const monetary = new Map<string, number>()
   for (const id of ids) {
-    recency.set(id, recencyDays(txs, id, asOf) ?? 1e9)
-    freq.set(id, txs.filter((t) => t.customerId === id && !t.isRefund).length)
-    monetary.set(id, txs.filter((t) => t.customerId === id && !t.isRefund).reduce((s, t) => s + t.amountBase, 0))
+    const own = byCustomer.get(id)!
+    recency.set(id, recencyDays(own, id, asOf) ?? 1e9)
+    const nonRefund = own.filter((t) => !t.isRefund)
+    freq.set(id, nonRefund.length)
+    monetary.set(id, nonRefund.reduce((s, t) => s + t.amountBase, 0))
   }
   const recPop = [...recency.values()]
   const freqPop = [...freq.values()]
