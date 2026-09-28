@@ -9,6 +9,9 @@ import { nrr, arpa, grr, logoChurnRate } from './kpis'
 import { ltvWithExpansion } from './retentionDepth'
 
 const srcKey = (s: string) => s.trim().toLowerCase()
+const ORGANIC_RE = /organic|seo|content|referral|word.?of.?mouth/i
+/** Organic acquisition source (SEO, content, referral, direct) vs paid. */
+export const isOrganicSource = (s: string) => ORGANIC_RE.test(s) || /direct/i.test(s)
 
 /** New customers acquired in months with S&M spend, keyed by lower-cased acquisition source ('' = unknown). */
 function newBySource(m: Matrix, spend: SpendRow[], sourceOf: Map<string, string>): Map<string, number> {
@@ -130,11 +133,10 @@ export function paidVsOrganicCac(m: Matrix, spend: SpendRow[], sourceOf?: Map<st
   organicCac: number | null
   attributed: boolean
 } {
-  const organicRe = /organic|seo|content|referral|word.?of.?mouth/i
   let paidSpend = 0, organicSpend = 0
   for (const r of spend) {
     if (r.category !== 'marketing' && r.category !== 'sales') continue
-    if (organicRe.test(r.channel)) organicSpend += r.amount
+    if (ORGANIC_RE.test(r.channel)) organicSpend += r.amount
     else paidSpend += r.amount
   }
   const totalSm = paidSpend + organicSpend || 1
@@ -144,7 +146,7 @@ export function paidVsOrganicCac(m: Matrix, spend: SpendRow[], sourceOf?: Map<st
     // direct / type-in traffic is organic on the acquisition side
     for (const [k, n] of by) {
       if (!k) unknown += n
-      else if (organicRe.test(k) || /direct/.test(k)) orgNew += n
+      else if (isOrganicSource(k)) orgNew += n
       else paidNew += n
     }
   } else unknown = cacSeries(m, spend).reduce((s, p) => s + p.newCustomers, 0)
