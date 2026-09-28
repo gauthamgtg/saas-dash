@@ -87,7 +87,7 @@ export function EfficiencyLab() {
         </Panel>
         <Panel title="Rule of 40 trend" sub="needs 12+ months + spend">
           {d.r40Chart.length
-            ? <TrendChart data={d.r40Chart} xKey="month" height={280} series={[
+            ? <TrendChart data={d.r40Chart} xKey="month" height={280} yFmt={(v) => `${v.toLocaleString()}%`} series={[
               { key: 'Rule of 40', color: CHART.accent },
               { key: 'Growth', color: CHART.pos },
               { key: 'Margin', color: CHART.steel },

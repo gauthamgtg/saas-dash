@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { STORAGE_KEY } from './keys'
 import { hasPendingFile } from '@/src/lib/pendingImport'
-import { sampleTransactions } from '@/src/lib/sampleData'
+import { sampleTransactions, sampleSpend, samplePipeline } from '@/src/lib/sampleData'
 import type { Transaction, Controls, BinDef } from '@/src/lib/types'
 import { DEFAULT_BINS, DEFAULT_CONTROLS } from '@/src/lib/types'
 import { NAV_ITEMS } from '@/src/lib/nav'
@@ -116,6 +116,7 @@ type Action =
   | { type: 'setMapping'; mapping: Mapping }
   | { type: 'setFx'; fxRates: FxRates }
   | { type: 'setData'; transactions: Transaction[]; issues: BlockingIssue[]; resolvedDateOrder: Exclude<DateOrder, 'auto'> }
+  | { type: 'loadDemo' }
   | { type: 'setSpend'; spend: SpendRow[] | null }
   | { type: 'setPipeline'; pipeline: PipelineDeal[] | null }
   | { type: 'resolveIssues'; results: ({ id: string; transaction: Transaction } | { id: string; issue: BlockingIssue })[] }
@@ -142,6 +143,8 @@ function reducer(s: State, a: Action): State {
     case 'setMapping': return { ...s, mapping: a.mapping }
     case 'setFx': return { ...s, fxRates: a.fxRates }
     case 'setData': return { ...s, transactions: a.transactions, issues: a.issues, resolvedDateOrder: a.resolvedDateOrder }
+    // demo ships spend, pipeline and cash so every cost-dependent view has data
+    case 'loadDemo': return { ...s, transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy', spend: sampleSpend(), pipeline: samplePipeline(), cashOnHand: 1_500_000 }
     case 'setSpend': return { ...s, spend: a.spend }
     case 'setPipeline': return { ...s, pipeline: a.pipeline }
     case 'resolveIssues': {
@@ -210,7 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const params = new URLSearchParams(window.location.search)
     if (params.get('demo') === '1') {
       window.history.replaceState(null, '', window.location.pathname)
-      dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })
+      dispatch({ type: 'loadDemo' })
       const view = NAV_ITEMS.find((it) => it.id === params.get('view'))?.id // deep link from a landing card
       if (view) dispatch({ type: 'setView', view })
       return

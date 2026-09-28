@@ -9,7 +9,7 @@ import { detectCurrencies } from '@/src/lib/fx'
 import type { FxRates } from '@/src/lib/fx'
 import { normalize } from '@/src/lib/normalize'
 import type { DateOrder } from '@/src/lib/date'
-import { sampleTransactions, sampleCsvRows } from '@/src/lib/sampleData'
+import { sampleCsvRows } from '@/src/lib/sampleData'
 import { downloadCsv } from '@/src/lib/csv'
 import { useApp } from '@/src/state/AppContext'
 import { MappingForm } from './MappingForm'
@@ -113,7 +113,7 @@ export function Dropzone() {
   const valid = preview?.transactions.length ?? 0
   const skipped = preview?.issues.length ?? 0
 
-  const loadSample = () => dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })
+  const loadSample = () => dispatch({ type: 'loadDemo' })
   const template = () => downloadCsv('ledger-sample-template', sampleCsvRows())
 
   const homeLink = (

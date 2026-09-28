@@ -8,11 +8,12 @@ const gid = (key: string) => `g-${key.replace(/[^a-zA-Z0-9_-]/g, '_')}`
 type RefLine = { y: number; label: string; color?: string }
 type Marker = { month: string; label: string }
 
-export function TrendChart({ data, xKey, series, area, height = 288, refLines, markers, showLegend, onPointClick }: {
+export function TrendChart({ data, xKey, series, area, height = 288, refLines, markers, showLegend, onPointClick, yFmt }: {
   data: Record<string, any>[]; xKey: string; series: Series[]; area?: boolean; height?: number
   refLines?: RefLine[]; markers?: Marker[]; showLegend?: boolean
   /** Click a data point / column → drill into that x value (e.g. month). */
   onPointClick?: (x: string) => void
+  yFmt?: (v: number) => string
 }) {
   // Map click x → nearest data index ourselves (Recharts' activeLabel is unreliable across versions).
   // 48 = YAxis width, 8 = right margin — keep in sync with the axis/margin props below.
@@ -32,7 +33,7 @@ export function TrendChart({ data, xKey, series, area, height = 288, refLines, m
       <CartesianGrid strokeDasharray="2 5" vertical={false} stroke="var(--line)" />
       <XAxis dataKey={xKey} tickLine={false} axisLine={{ stroke: 'var(--line-strong)' }} tickMargin={8} minTickGap={16} />
       <YAxis tickLine={false} axisLine={false} width={48}
-        tickFormatter={(v: number) => Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : Math.abs(v) >= 1e3 ? `${Math.round(v / 1e3)}K` : String(v)} />
+        tickFormatter={yFmt ?? ((v: number) => Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : Math.abs(v) >= 1e3 ? `${Math.round(v / 1e3)}K` : String(v))} />
       <Tooltip cursor={{ stroke: 'var(--line-strong)', strokeDasharray: '3 3' }} />
       {legend && <Legend iconType="plainline" wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-display)' }} />}
       {refLines?.map((r) => (

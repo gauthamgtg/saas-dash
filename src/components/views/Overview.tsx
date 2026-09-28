@@ -101,7 +101,7 @@ export function Overview() {
     const planDim = lastTxs.some((t) => t.plan) ? 'plan' as const : 'businessModel' as const
     const plan = revenueByDimension(lastTxs, planDim).map((r) => ({ key: r.key, value: Math.round(r.revenue) }))
     const geoDim = txs.some((t) => t.country) ? 'country' as const : 'region' as const
-    const geo = revenueByDimension(txs, geoDim).slice(0, 6)
+    const geo = revenueByDimension(txs, geoDim).slice(0, 8)
     const geoTotal = geo.reduce((s, g) => s + g.revenue, 0)
 
     const moves = movementSeries(m, { reactivationGapK: state.controls.reactivationGapK })
@@ -111,7 +111,7 @@ export function Overview() {
     // top customers by current MRR, with MoM change
     const top = [...m.customers]
       .map((c) => ({ id: c, mrr: get(m, c, last), prev: get(m, c, prev) }))
-      .filter((r) => r.mrr > 0).sort((a, b) => b.mrr - a.mrr).slice(0, 5)
+      .filter((r) => r.mrr > 0).sort((a, b) => b.mrr - a.mrr).slice(0, 6)
       .map((r) => ({ ...r, name: txs.find((t) => t.customerId === r.id)?.name ?? r.id, change: rel(r.mrr, r.prev) }))
 
     const events = movementEvents(m, txs, state.controls.reactivationGapK)
@@ -185,14 +185,14 @@ export function Overview() {
         <KpiCard hero icon="⛨" iconColor="var(--steel)" label="Retention rate" value={fmtPct(d.grr)} tone={d.grr != null && d.grr >= 0.95 ? 'pos' : 'default'} deltaLabel="gross revenue · MoM" />
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         <Panel className="xl:col-span-2" title="MRR trend" sub={`${d.hasGhost ? `solid = now · dashed = ${d.ghostKey.replace('MRR · ', '')} · ` : ''}click a month to drill in`}
           csv={{ filename: 'mrr-trend', rows: d.mrrChart }}
           right={<div className="flex items-center gap-2">
             {notes.length > 0 && <button onClick={clear} className="text-[12px] text-ink-faint hover:text-neg font-medium">clear notes</button>}
             <button onClick={addNote} className="rounded-md border border-line-strong px-2 py-0.5 text-[12px] text-ink-soft hover:bg-paper-2 hover:text-ink font-medium">＋ note</button>
           </div>}>
-          <TrendChart data={d.mrrChart} xKey="month" area height={250} markers={[...d.markers, ...notes]} onPointClick={drillMonth}
+          <TrendChart data={d.mrrChart} xKey="month" area height={314} markers={[...d.markers, ...notes]} onPointClick={drillMonth}
             series={[{ key: 'MRR', color: CHART.accent }, ...(d.hasGhost ? [{ key: d.ghostKey, color: CHART.ink, ghost: true }] : [])]} />
         </Panel>
         <Panel title="MRR by plan" sub={`as of ${d.last}`} csv={{ filename: 'mrr-by-plan', rows: d.plan }}>
@@ -204,7 +204,7 @@ export function Overview() {
         </Panel>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Panel title="MRR breakdown" sub={`${d.prev} → ${d.last}`} csv={{ filename: 'mrr-movement', rows: d.moves }}>
           {moveRow('New MRR', d.lastMove?.newMrr, d.prevMove?.newMrr)}
           {moveRow('Expansion MRR', d.lastMove?.expansion, d.prevMove?.expansion)}
@@ -244,7 +244,7 @@ export function Overview() {
 
         <Panel title="Churn & retention trend" sub="logo churn vs gross retention · MoM" csv={{ filename: 'churn-retention', rows: d.churnRet }}>
           {d.churnRet.length > 1 ? (
-            <DualAxisChart data={d.churnRet} xKey="month" height={228}
+            <DualAxisChart data={d.churnRet} xKey="month" height={273}
               leftFmt={(v) => `${v}%`} rightFmt={(v) => `${v}%`}
               series={[
                 { key: 'Retention %', color: CHART.steel, axis: 'left' },
@@ -254,10 +254,10 @@ export function Overview() {
         </Panel>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Panel title="Recent activity" sub="individual revenue movements · new, expansion, churn & more"
           csv={{ filename: 'recent-activity', rows: d.events.slice(0, 20).map((e) => ({ customer: e.name ?? e.customerId, type: e.type, month: e.month, amount: e.amount })) }}>
-          <ActivityFeed events={d.events} limit={6} />
+          <ActivityFeed events={d.events} limit={5} />
         </Panel>
 
         <Panel title={d.geoDim === 'country' ? 'Revenue by country' : 'Revenue by region'} sub="share of range revenue"

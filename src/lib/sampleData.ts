@@ -1,4 +1,6 @@
 import type { Transaction } from './types'
+import type { SpendRow } from './spend'
+import type { PipelineDeal, PipelineStage } from './pipeline'
 import { monthRange, addMonths } from './types'
 
 /** Deterministic PRNG so the demo dataset is identical every load. */
@@ -116,4 +118,46 @@ export function sampleTransactions(): Transaction[] {
     }
   }
   return txs
+}
+
+const SPEND_CHANNELS: { channel: string; category: SpendRow['category']; base: number }[] = [
+  { channel: 'Google Ads', category: 'marketing', base: 6200 },
+  { channel: 'LinkedIn Ads', category: 'marketing', base: 3800 },
+  { channel: 'Content & SEO', category: 'marketing', base: 2400 },
+  { channel: 'Events', category: 'marketing', base: 1800 },
+  { channel: 'SDR team', category: 'sales', base: 7500 },
+  { channel: 'Account executives', category: 'sales', base: 9000 },
+  { channel: 'R&D payroll', category: 'other', base: 38000 },
+  { channel: 'Infrastructure', category: 'other', base: 6500 },
+  { channel: 'G&A', category: 'other', base: 9000 },
+]
+
+/** Demo monthly spend matching the sample window — lights up Unit Economics and Efficiency Lab. */
+export function sampleSpend(): SpendRow[] {
+  const rand = mulberry32(4242)
+  const months = monthRange(addMonths('2026-06', -17), '2026-06')
+  // costs ramp ~40% across the window; events are lumpy
+  return months.flatMap((month, i) => SPEND_CHANNELS.map(({ channel, category, base }) => ({
+    month, channel, category,
+    amount: Math.round(base * (1 + (0.4 * i) / (months.length - 1)) * (channel === 'Events' ? (rand() < 0.3 ? 3 : 0.4) : 0.9 + rand() * 0.2)),
+  })))
+}
+
+const STAGE_PROB: Record<PipelineStage, number> = { lead: 0.1, qualified: 0.25, proposal: 0.45, negotiation: 0.7, won: 1, lost: 0 }
+
+/** Demo CRM opportunities: closed deals in the last quarter, open ones over the next two. */
+export function samplePipeline(): PipelineDeal[] {
+  const rand = mulberry32(777)
+  const pick = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)]
+  const sources = ['Inbound', 'Outbound', 'Partner', 'Event', 'Referral']
+  return Array.from({ length: 48 }, (_, i) => {
+    const closed = rand() < 0.35
+    const stage: PipelineStage = closed ? (rand() < 0.45 ? 'won' : 'lost') : pick(['lead', 'qualified', 'qualified', 'proposal', 'proposal', 'negotiation'])
+    return {
+      dealId: `D-${2001 + i}`, name: `${pick(PREFIX)} ${pick(SUFFIX)}`, stage,
+      amount: Math.round((6000 + rand() * rand() * 90000) / 500) * 500,
+      closeMonth: addMonths('2026-06', closed ? -Math.floor(rand() * 3) : 1 + Math.floor(rand() * 6)),
+      owner: pick(REPS.slice(0, 5)), source: pick(sources), probability: STAGE_PROB[stage],
+    }
+  })
 }

@@ -44,15 +44,13 @@ export function ruleOf40Trend(m: Matrix, spend: SpendRow[]): { month: string; sc
       continue
     }
     const rev = window.reduce((s, mo) => s + mrrOf(m, mo), 0)
-    const revYearAgo = m.months
-      .filter((mo) => monthDiff(mo, yearAgo) >= 0 && monthDiff(addMonths(yearAgo, -12), mo) > 0)
-      .reduce((s, mo) => s + mrrOf(m, mo), 0)
+    const revYearAgo = mrrOf(m, yearAgo) // YoY run-rate growth, same basis as ruleOf40()
     if (rev <= 0 || revYearAgo <= 0) {
       out.push({ month: end, score: null, growth: null, margin: null })
       continue
     }
     const costs = spendMonths.reduce((s, mo) => s + (all.get(mo) ?? 0), 0) * (window.length / spendMonths.length)
-    const growth = rev / revYearAgo - 1
+    const growth = mrrOf(m, end) / revYearAgo - 1
     const margin = (rev - costs) / rev
     out.push({ month: end, score: growth + margin, growth, margin })
   }

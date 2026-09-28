@@ -86,12 +86,12 @@ export function ruleOf40(m: Matrix, spend: SpendRow[]): { growth: number; margin
   const spendMonths = window.filter((mo) => all.has(mo))
   if (!spendMonths.length) return null
   const rev = window.reduce((s, mo) => s + mrrOf(m, mo), 0)
-  const revYearAgo = m.months.filter((mo) => monthDiff(mo, yearAgo) >= 0 && monthDiff(addMonths(yearAgo, -12), mo) > 0)
-    .reduce((s, mo) => s + mrrOf(m, mo), 0)
+  // growth = YoY run-rate (ARR) growth — a trailing-vs-prior-12 revenue ratio explodes when history barely covers the prior year
+  const revYearAgo = mrrOf(m, yearAgo)
   if (rev <= 0 || revYearAgo <= 0) return null
   // scale costs to the full window when spend covers only part of it
   const costs = spendMonths.reduce((s, mo) => s + (all.get(mo) ?? 0), 0) * (window.length / spendMonths.length)
-  const growth = rev / revYearAgo - 1
+  const growth = mrrOf(m, last) / revYearAgo - 1
   const margin = (rev - costs) / rev
   return { growth, margin, score: growth + margin }
 }

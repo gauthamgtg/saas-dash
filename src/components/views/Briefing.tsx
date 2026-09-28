@@ -63,7 +63,7 @@ export function Briefing() {
 
     // Top customers by current MRR
     const top = m.customers.map((c) => ({ customerId: c, name: nameById.get(c) ?? c, model: planById.get(c) ?? '—', mrr: get(m, c, last), prev: get(m, c, prev) }))
-      .filter((r) => r.mrr > 0).sort((a, b) => b.mrr - a.mrr).slice(0, 6)
+      .filter((r) => r.mrr > 0).sort((a, b) => b.mrr - a.mrr).slice(0, 8)
     const topMax = Math.max(1, ...top.map((t) => t.mrr))
 
     // Churn & retention trend
@@ -112,19 +112,19 @@ export function Briefing() {
       </div>
 
       {/* Trends + plan split */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         <Panel className="lg:col-span-2" title="MRR trajectory" sub={d.hasGhost ? `solid = now · dashed = ${d.ghostKey.replace('MRR · ', '')}` : undefined}
           right={<Delta value={d.mrrDelta} />}>
           <TrendChart data={d.mrrChart} xKey="month" area height={260}
             series={[{ key: 'MRR', color: CHART.accent }, ...(d.hasGhost ? [{ key: d.ghostKey, color: CHART.ink, ghost: true }] : [])]} />
         </Panel>
         <Panel title="MRR by plan" sub={`as of ${d.month}`}>
-          <DonutChart data={d.donut} centerLabel="Total MRR" height={200} />
+          <DonutChart data={d.donut} centerLabel="Total MRR" height={260} />
         </Panel>
       </div>
 
       {/* Movement waterfall + top customers + churn/retention */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         <Panel title="MRR movement" sub={`${d.prev} → ${d.month}`}
           right={<span className="text-sm font-medium tabular-nums" style={{ color: (d.lastMove?.netNew ?? 0) >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{(d.lastMove?.netNew ?? 0) >= 0 ? '+' : ''}{fmtMoney(d.lastMove?.netNew ?? 0)}</span>}>
           {d.lastMove
@@ -149,16 +149,16 @@ export function Briefing() {
           </table>
         </Panel>
         <Panel title="Churn & retention" sub="logo, month-over-month">
-          <DualAxisChart data={d.cr} xKey="month" height={240}
+          <DualAxisChart data={d.cr} xKey="month" height={285}
             leftFmt={(v) => `${v}%`} rightFmt={(v) => `${v}%`}
             series={[{ key: 'Retention', color: CHART.pos, axis: 'left' }, { key: 'Churn', color: CHART.neg, axis: 'right' }]} />
         </Panel>
       </div>
 
       {/* Activity + geo + insights */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <Panel title="Recent activity" sub="individual revenue movements"><ActivityFeed events={d.events} limit={9} /></Panel>
-        <Panel title="Revenue by country"><GeoPanel rows={d.geo} limit={7} /></Panel>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Panel title="Recent activity" sub="individual revenue movements"><ActivityFeed events={d.events} limit={5} /></Panel>
+        <Panel title="Revenue by country"><GeoPanel rows={d.geo} limit={8} /></Panel>
         <Panel title="Insights" sub="auto-generated"><InsightsPanel items={d.insights} /></Panel>
       </div>
     </div>
