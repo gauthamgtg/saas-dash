@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Logo } from '@/src/components/ui/Logo'
+import { Logo, Wordmark } from '@/src/components/ui/Logo'
 import { ThemeToggle } from '@/src/components/ui/ThemeToggle'
 
 /** Top bar for the public pages (landing, importer). Server-safe; `right` holds page-specific actions. */
@@ -9,7 +9,7 @@ export function SiteNav({ links = false, right }: { links?: boolean; right?: Rea
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
         <Link href="/" className="flex items-center gap-2.5" aria-label="MRRmark home">
           <Logo size={28} />
-          <span className="text-[16px] font-semibold tracking-[-0.02em] text-ink">MRRmark</span>
+          <Wordmark className="text-[16px] font-semibold tracking-[-0.02em] text-ink" />
         </Link>
         {links && (
           <nav className="hidden items-center gap-6 text-[13.5px] text-ink-soft md:flex">

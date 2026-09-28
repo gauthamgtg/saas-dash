@@ -7,7 +7,7 @@ import { applyFilters } from '@/src/lib/dashboard'
 import { computeAlerts } from '@/src/lib/alerts'
 import { PALETTE_EVENT } from '@/src/components/CommandPalette'
 import { NAV_ITEMS } from '@/src/lib/nav'
-import { Logo } from '@/src/components/ui/Logo'
+import { Logo, Wordmark } from '@/src/components/ui/Logo'
 
 const I = (d: React.ReactNode) => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{d}</svg>
@@ -81,7 +81,7 @@ export function Sidebar() {
       <Link href="/" title="Back to the MRRmark home page" className="mb-3 flex items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-side-2">
         <Logo />
         <div className="min-w-0">
-          <div className="text-[14px] font-semibold leading-none tracking-tight text-side-ink">MRRmark</div>
+          <Wordmark className="block text-[14px] font-semibold leading-none tracking-tight text-side-ink" />
           <div className="mt-1 truncate text-[11.5px] leading-none text-side-faint">{state.workspace.name}</div>
         </div>
       </Link>

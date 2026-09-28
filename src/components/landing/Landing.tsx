@@ -3,7 +3,7 @@ import { sampleTransactions } from '@/src/lib/sampleData'
 import { buildMatrix, mrrOf, arr, activeCustomers, nrr, movementSeries } from '@/src/lib/engine'
 import { fmtMoney, fmtMoneyShort, fmtPct } from '@/src/lib/format'
 import { NAV_ITEMS } from '@/src/lib/nav'
-import { Logo } from '@/src/components/ui/Logo'
+import { Logo, Wordmark } from '@/src/components/ui/Logo'
 import { SiteNav } from '@/src/components/layout/SiteNav'
 import { HeroUpload, TemplateButton, NavCta, ShareRedirect } from './islands'
 import { Showcase, MetricTicker } from './Showcase'
@@ -246,7 +246,7 @@ export function Landing() {
       </section>
 
       <footer className="mx-auto mt-16 flex max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-8 text-[13px] text-ink-faint">
-        <span className="flex items-center gap-2"><Logo size={20} /> MRRmark — revenue analytics</span>
+        <span className="flex items-center gap-2"><Logo size={20} /> <Wordmark className="font-semibold text-ink" /> — revenue analytics</span>
         <span>Computed in your browser. Built for founders and finance teams.</span>
       </footer>
     </div>
