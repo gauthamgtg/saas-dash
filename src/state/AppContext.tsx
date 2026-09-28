@@ -144,7 +144,7 @@ function reducer(s: State, a: Action): State {
     case 'setFx': return { ...s, fxRates: a.fxRates }
     case 'setData': return { ...s, transactions: a.transactions, issues: a.issues, resolvedDateOrder: a.resolvedDateOrder }
     // demo ships spend, pipeline and cash so every cost-dependent view has data
-    case 'loadDemo': return { ...s, transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy', spend: sampleSpend(), pipeline: samplePipeline(), cashOnHand: 1_500_000 }
+    case 'loadDemo': return { ...s, transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy', spend: sampleSpend(), pipeline: samplePipeline(), cashOnHand: 900_000 }
     case 'setSpend': return { ...s, spend: a.spend }
     case 'setPipeline': return { ...s, pipeline: a.pipeline }
     case 'resolveIssues': {

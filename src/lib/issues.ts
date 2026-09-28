@@ -53,7 +53,8 @@ export function findWarnings(transactions: Transaction[]): (BlankFieldIssue | Du
     const byValue = new Map<string, string[]>()
     for (const t of transactions) {
       const v = field === 'paymentId' ? t.paymentId : t.invoiceNumber
-      if (!v) continue
+      // a refund carries its original invoice number by design — only flag repeats among charges
+      if (!v || (field === 'invoiceNumber' && t.isRefund)) continue
       byValue.set(v, [...(byValue.get(v) ?? []), t.paymentId])
     }
     for (const [value, ids] of byValue) {

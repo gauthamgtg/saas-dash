@@ -25,6 +25,10 @@ describe('findWarnings', () => {
     const warnings = findWarnings([txn({ paymentId: 'p1', invoiceNumber: 'i1' }), txn({ paymentId: 'p2', invoiceNumber: 'i2' })])
     expect(warnings.some((w) => w.kind === 'duplicateId')).toBe(false)
   })
+  it('does not flag a refund reusing its charge invoice number', () => {
+    const warnings = findWarnings([txn({ paymentId: 'p1' }), txn({ paymentId: 'p2', isRefund: true, amountNative: -100, amountBase: -100 })])
+    expect(warnings.some((w) => w.kind === 'duplicateId')).toBe(false)
+  })
   it('flags duplicate rows sharing customer, date, amount, currency', () => {
     const warnings = findWarnings([txn({ paymentId: 'p1' }), txn({ paymentId: 'p2' })])
     expect(warnings.some((w) => w.kind === 'duplicateRow')).toBe(true)
