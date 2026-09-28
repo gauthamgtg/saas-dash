@@ -39,6 +39,7 @@ const ICONS: Record<ViewId, React.ReactNode> = {
   collections: I(<><rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" /><path d="M5 9.5h1M7.5 9.5h1M10 9.5h1M5 11.5h1M7.5 11.5h1" /></>),
   churnwarn: I(<><path d="M8 1.5 2.5 4v4c0 3.2 2.4 5.6 5.5 6.5 3.1-.9 5.5-3.3 5.5-6.5V4z" /><path d="M8 5v3.5M8 10.8v.4" /></>),
   expansion: I(<><circle cx="8" cy="8" r="6" /><circle cx="8" cy="8" r="3" /><path d="M8 8l4.2-4.2" /></>),
+  geo: I(<><circle cx="8" cy="8" r="6" /><path d="M2 8h12" /><path d="M8 2c1.8 1.7 2.7 3.7 2.7 6S9.8 12.3 8 14c-1.8-1.7-2.7-3.7-2.7-6S6.2 3.7 8 2z" /></>),
   connectors: I(<><path d="M6 4.5H4.5a2 2 0 0 0 0 4H6" /><path d="M10 7.5h1.5a2 2 0 0 1 0 4H10" /><path d="M6 6.5h4" /></>),
 }
 
@@ -60,6 +61,7 @@ export const NAV_ITEMS: { id: ViewId; label: string; group: string }[] = [
   { id: 'cohorts', label: 'Cohorts', group: 'Analysis' },
   { id: 'retention', label: 'Retention Lab', group: 'Analysis' },
   { id: 'segments', label: 'Segments', group: 'Analysis' },
+  { id: 'geo', label: 'Markets', group: 'Analysis' },
   { id: 'customers', label: 'Customers', group: 'Analysis' },
   { id: 'health', label: 'Customer Health', group: 'Analysis' },
   { id: 'churnwarn', label: 'Churn Warning', group: 'Analysis' },

@@ -33,6 +33,7 @@ import { Goals } from '@/src/components/views/Goals'
 import { InvestorUpdate } from '@/src/components/views/InvestorUpdate'
 import { Collections } from '@/src/components/views/Collections'
 import { ChurnWarning, ExpansionRadar } from '@/src/components/views/Signals'
+import { Geo } from '@/src/components/views/Geo'
 import { CommandPalette } from '@/src/components/CommandPalette'
 
 export function Shell() {
@@ -48,7 +49,7 @@ export function Shell() {
     benchmarks: <Benchmarks />, unitecon: <UnitEconomics />, efficiency: <EfficiencyLab />,
     product: <ProductLab />, connectors: <Connectors />,
     goals: <Goals />, update: <InvestorUpdate />, collections: <Collections />,
-    churnwarn: <ChurnWarning />, expansion: <ExpansionRadar />,
+    churnwarn: <ChurnWarning />, expansion: <ExpansionRadar />, geo: <Geo />,
   }[state.view]
 
   if (state.present) {

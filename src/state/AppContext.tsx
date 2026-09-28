@@ -17,7 +17,7 @@ export type ViewId =
   | 'overview' | 'mrr' | 'growth' | 'forecast' | 'salesreps' | 'pipeline'
   | 'trends' | 'cohorts' | 'retention' | 'segments' | 'customers' | 'health' | 'risk' | 'bins'
   | 'benchmarks' | 'unitecon' | 'efficiency' | 'product' | 'connectors'
-  | 'goals' | 'update' | 'collections' | 'churnwarn' | 'expansion'
+  | 'goals' | 'update' | 'collections' | 'churnwarn' | 'expansion' | 'geo'
 
 export type Workspace = {
   name: string

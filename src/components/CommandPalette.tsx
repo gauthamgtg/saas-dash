@@ -13,6 +13,7 @@ const VIEWS: { id: ViewId; label: string }[] = [
   { id: 'collections', label: 'Cash Calendar' },
   { id: 'churnwarn', label: 'Churn Warning' },
   { id: 'expansion', label: 'Expansion Radar' },
+  { id: 'geo', label: 'Markets (geo)' },
   { id: 'arrbridge', label: 'ARR Bridge' },
   { id: 'alerts', label: 'Alerts' },
   { id: 'issues', label: 'Data Issues' },
