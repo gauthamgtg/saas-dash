@@ -78,10 +78,10 @@ export function Sidebar() {
 
   return (
     <nav className="sticky top-0 flex h-screen w-[248px] shrink-0 flex-col border-r border-side-line bg-side px-3 pb-3 pt-4">
-      <Link href="/" title="Back to the Ledger home page" className="mb-3 flex items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-side-2">
+      <Link href="/" title="Back to the MRRmark home page" className="mb-3 flex items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-side-2">
         <Logo />
         <div className="min-w-0">
-          <div className="text-[14px] font-semibold leading-none tracking-tight text-side-ink">Ledger</div>
+          <div className="text-[14px] font-semibold leading-none tracking-tight text-side-ink">MRRmark</div>
           <div className="mt-1 truncate text-[11.5px] leading-none text-side-faint">{state.workspace.name}</div>
         </div>
       </Link>

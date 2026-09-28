@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp, type ViewId } from '@/src/state/AppContext'
 
 /** Fire from anywhere (sidebar button, control bar) to open the palette. */
-export const PALETTE_EVENT = 'ledger:palette'
+export const PALETTE_EVENT = 'mrrmark:palette'
 
 const VIEWS: { id: ViewId; label: string }[] = [
   { id: 'briefing', label: 'Executive Briefing' },
@@ -128,7 +128,7 @@ export function CommandPalette() {
         <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[10px] text-ink-faint tabular-nums">
           <span><kbd>↑</kbd> <kbd>↓</kbd> navigate</span>
           <span><kbd>↵</kbd> select</span>
-          <span className="ml-auto">Ledger</span>
+          <span className="ml-auto">MRRmark</span>
         </div>
       </div>
     </div>

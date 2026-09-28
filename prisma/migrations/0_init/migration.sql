@@ -1,4 +1,4 @@
--- Initial Ledger cloud schema (apply on Neon / Postgres)
+-- Initial MRRmark cloud schema (apply on Neon / Postgres)
 -- prisma migrate deploy once DATABASE_URL is set, or run this SQL manually.
 
 CREATE TABLE IF NOT EXISTS "Workspace" (

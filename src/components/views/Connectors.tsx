@@ -261,7 +261,7 @@ export function Connectors() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Ledger Trust page" sub="public MRR source of truth">
+        <Panel title="MRRmark Trust page" sub="public MRR source of truth">
           {!hasCloud ? (
             <p className="text-sm text-ink-soft">Create a cloud workspace to publish.</p>
           ) : (

@@ -8,13 +8,13 @@ type Props = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const trust = await getPublicTrust(slug)
-  if (!trust) return { title: 'Not found · Ledger Trust' }
+  if (!trust) return { title: 'Not found · MRRmark Trust' }
   return {
-    title: `${trust.companyName} — Verified MRR · Ledger Trust`,
-    description: `Verified MRR for ${trust.companyName}. Source of truth via Ledger.`,
+    title: `${trust.companyName} — Verified MRR · MRRmark Trust`,
+    description: `Verified MRR for ${trust.companyName}. Source of truth via MRRmark.`,
     openGraph: {
       title: `${trust.companyName} verified MRR`,
-      description: `MRR verified on Ledger Trust`,
+      description: `MRR verified on MRRmark Trust`,
     },
   }
 }

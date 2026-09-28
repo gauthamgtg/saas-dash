@@ -136,9 +136,9 @@ async function getPrisma(): Promise<PrismaClientLike | null> {
   if (prisma) return prisma
   try {
     const mod = await import('@prisma/client')
-    const g = globalThis as { __ledgerPrisma?: PrismaClientLike }
-    prisma = g.__ledgerPrisma ?? new mod.PrismaClient()
-    if (process.env.NODE_ENV !== 'production') g.__ledgerPrisma = prisma
+    const g = globalThis as { __mrrmarkPrisma?: PrismaClientLike }
+    prisma = g.__mrrmarkPrisma ?? new mod.PrismaClient()
+    if (process.env.NODE_ENV !== 'production') g.__mrrmarkPrisma = prisma
     return prisma
   } catch (e) {
     console.warn('[ledger] Prisma client unavailable, falling back to file store:', e)

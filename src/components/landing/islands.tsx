@@ -20,7 +20,7 @@ export function HeroUpload() {
 }
 
 export function TemplateButton({ className, children }: { className: string; children: React.ReactNode }) {
-  return <button onClick={() => downloadCsv('ledger-sample-template', sampleCsvRows())} className={className}>{children}</button>
+  return <button onClick={() => downloadCsv('mrrmark-sample-template', sampleCsvRows())} className={className}>{children}</button>
 }
 
 /** "Open dashboard" for returning users with saved data, "Open demo" for everyone else. */

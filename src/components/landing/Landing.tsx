@@ -50,7 +50,7 @@ function ProductPreview() {
     <div className="overflow-hidden rounded-2xl border border-line bg-paper shadow-pop">
       <div className="flex h-10 items-center gap-2 border-b border-line bg-paper-2 px-4">
         {['#ff5f57', '#febc2e', '#28c840'].map((c) => <span key={c} className="h-2.5 w-2.5 rounded-full" style={{ background: c, opacity: 0.8 }} />)}
-        <span className="mx-auto rounded-md border border-line bg-paper px-3 py-0.5 text-[11.5px] text-ink-faint">Ledger · Executive briefing</span>
+        <span className="mx-auto rounded-md border border-line bg-paper px-3 py-0.5 text-[11.5px] text-ink-faint">MRRmark · Executive briefing</span>
         <span className="w-12" />
       </div>
       <div className="grid grid-cols-[180px_1fr] max-md:grid-cols-1">
@@ -150,7 +150,7 @@ export function Landing() {
               <span className="font-serif text-[1.08em] font-normal italic tracking-[-0.02em] text-accent">payments export.</span>
             </h1>
             <p className="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-ink-soft">
-              Drop a CSV or Excel file. Ledger maps your columns and computes MRR, retention, cohorts,
+              Drop a CSV or Excel file. MRRmark maps your columns and computes MRR, retention, cohorts,
               forecasts and a board-ready pack — in seconds, with no sign-up.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -246,7 +246,7 @@ export function Landing() {
       </section>
 
       <footer className="mx-auto mt-16 flex max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-8 text-[13px] text-ink-faint">
-        <span className="flex items-center gap-2"><Logo size={20} /> Ledger — revenue analytics</span>
+        <span className="flex items-center gap-2"><Logo size={20} /> MRRmark — revenue analytics</span>
         <span>Computed in your browser. Built for founders and finance teams.</span>
       </footer>
     </div>

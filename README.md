@@ -1,4 +1,4 @@
-# Ledger — Revenue Terminal
+# MRRmark — Revenue Terminal
 
 Client-first SaaS revenue analytics with optional cloud (Trust pages, Stripe sync, file storage, live peer benchmarks).
 

@@ -1,4 +1,4 @@
-// Chart palette (hex — Recharts needs literal colors). "Banker's Ledger": emerald primary,
+// Chart palette (hex — Recharts needs literal colors). Emerald primary,
 // cobalt/bronze/violet support. Chosen to read well on BOTH light and dark.
 export const CHART = {
   navy: '#0ea371',   // primary series (emerald)

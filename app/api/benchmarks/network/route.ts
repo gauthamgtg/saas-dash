@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       },
       note: network.n < 5
         ? 'Network percentiles unlock at 5+ public Trust pages in this ARR band. Survey medians are shown until then.'
-        : 'Live peer medians from public Ledger Trust pages in this ARR band (anonymized).',
+        : 'Live peer medians from public MRRmark Trust pages in this ARR band (anonymized).',
     },
   })
 }

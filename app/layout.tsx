@@ -7,7 +7,7 @@ const serif = Instrument_Serif({ subsets: ['latin'], weight: '400', style: ['nor
 const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-mono' })
 
 export const metadata: Metadata = {
-  title: 'Ledger — Revenue analytics from a payments export',
+  title: 'MRRmark — Revenue analytics from a payments export',
   description: 'Upload a payments export, get a boardroom-ready revenue picture. 100+ SaaS metrics, computed entirely in your browser.',
 }
 

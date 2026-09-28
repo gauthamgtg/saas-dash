@@ -114,7 +114,7 @@ export function Dropzone() {
   const skipped = preview?.issues.length ?? 0
 
   const loadSample = () => dispatch({ type: 'loadDemo' })
-  const template = () => downloadCsv('ledger-sample-template', sampleCsvRows())
+  const template = () => downloadCsv('mrrmark-sample-template', sampleCsvRows())
 
   const homeLink = (
     <Link href="/" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-paper px-3 text-[13px] font-medium text-ink-soft shadow-card transition-colors hover:bg-paper-2 hover:text-ink">

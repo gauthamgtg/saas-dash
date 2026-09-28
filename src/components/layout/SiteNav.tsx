@@ -7,9 +7,9 @@ export function SiteNav({ links = false, right }: { links?: boolean; right?: Rea
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-bone/75 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Ledger home">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="MRRmark home">
           <Logo size={28} />
-          <span className="text-[16px] font-semibold tracking-[-0.02em] text-ink">Ledger</span>
+          <span className="text-[16px] font-semibold tracking-[-0.02em] text-ink">MRRmark</span>
         </Link>
         {links && (
           <nav className="hidden items-center gap-6 text-[13.5px] text-ink-soft md:flex">

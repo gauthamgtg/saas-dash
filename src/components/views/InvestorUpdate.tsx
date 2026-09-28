@@ -80,7 +80,7 @@ export function InvestorUpdate() {
     if (d.losses.length) L.push('## Revenue losses', '', ...d.losses.map((w) => `- **${w.name}** — ${w.type.toLowerCase()} ${signed(w.amount)} MRR`), '')
     if (d.auto.length) L.push('## What the numbers say', '', ...d.auto.map((t) => `- ${t}`), '')
     if (notes.asks.trim()) L.push('## Asks', '', ...notes.asks.trim().split('\n').map((x) => `- ${x.replace(/^[-•]\s*/, '')}`), '')
-    L.push('---', '_Generated with Ledger from payment data._')
+    L.push('---', '_Generated with MRRmark from payment data._')
     return L.join('\n')
   }, [d, cur, company, notes])
 
@@ -162,7 +162,7 @@ export function InvestorUpdate() {
           </div>
           {d.auto.length > 0 && <Section title="What the numbers say" items={d.auto} />}
           {notes.asks.trim() && <Section title="Asks" items={notes.asks.trim().split('\n').map((x) => x.replace(/^[-•]\s*/, ''))} />}
-          <p className="mt-10 border-t border-line pt-4 text-[12px] text-ink-faint">Generated with Ledger from payment data. Figures reflect the active filters.</p>
+          <p className="mt-10 border-t border-line pt-4 text-[12px] text-ink-faint">Generated with MRRmark from payment data. Figures reflect the active filters.</p>
         </article>
       </div>
     </div>

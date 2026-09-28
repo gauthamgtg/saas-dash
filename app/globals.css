@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ============================================================
-   Ledger — dual theme. :root = Light (default), [data-theme=dark] = Terminal.
+   MRRmark — dual theme. :root = Light (default), [data-theme=dark] = Terminal.
    Every surface/text/line/shadow is a variable so a single attribute flip reskins the app.
    ============================================================ */
 :root {

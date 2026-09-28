@@ -16,7 +16,7 @@ export default async function BadgePage({ params }: Props) {
         className="inline-flex items-center gap-2.5 rounded-[10px] border border-line-strong bg-paper px-3.5 py-2.5 text-ink shadow-card no-underline">
         <span className="h-2 w-2 rounded-full bg-pos shadow-[0_0_0_3px_color-mix(in_srgb,var(--pos)_20%,transparent)]" />
         <span>
-          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">Verified MRR · Ledger</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">Verified MRR · MRRmark</div>
           <div className="font-display text-lg font-bold tabular-nums">{fmtMoneyShort(trust.verifiedMrr, ccy)}</div>
         </span>
       </a>

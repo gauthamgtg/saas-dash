@@ -14,7 +14,7 @@ export function TrustPage(props: {
 }) {
   const ccy = props.currency === 'USD' ? '$' : `${props.currency} `
   const max = Math.max(1, ...props.sparkline)
-  const verifiedLabel = props.source === 'stripe' ? 'Stripe-verified' : props.source === 'hybrid' ? 'Hybrid-verified' : 'Ledger-verified'
+  const verifiedLabel = props.source === 'stripe' ? 'Stripe-verified' : props.source === 'hybrid' ? 'Hybrid-verified' : 'MRRmark-verified'
   const when = props.lastVerifiedAt
     ? new Date(props.lastVerifiedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
     : null
@@ -25,7 +25,7 @@ export function TrustPage(props: {
         <div className="mb-10 flex items-center gap-2.5">
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-xl font-semibold tracking-[-0.03em] text-accent-ink shadow-card">L</div>
           <div>
-            <div className="font-display text-[15px] font-bold tracking-tight">Ledger Trust</div>
+            <div className="font-display text-[15px] font-bold tracking-tight">MRRmark Trust</div>
             <div className="text-[11px] text-ink-soft font-medium">Public source of truth</div>
           </div>
         </div>
@@ -81,16 +81,16 @@ export function TrustPage(props: {
 
         <section className="mt-8 rounded-2xl border border-line bg-paper p-6 text-sm text-ink-soft">
           <p>
-            These figures are published through <strong className="text-ink">Ledger Trust</strong>.
+            These figures are published through <strong className="text-ink">MRRmark Trust</strong>.
             {props.source === 'stripe'
               ? ' MRR is computed server-side from active Stripe subscriptions via a read-only key — the founder cannot edit the number on this page.'
-              : ' Numbers were published from a Ledger workspace. Connect Stripe for cryptographic verification.'}
+              : ' Numbers were published from an MRRmark workspace. Connect Stripe for cryptographic verification.'}
           </p>
           <p className="mt-3 text-[11px] text-ink-faint tabular-nums">/{props.publicSlug}</p>
         </section>
 
         <footer className="mt-12 border-t border-line pt-6 text-[12px] text-ink-faint font-medium">
-          Ledger · Verified revenue · Not financial advice
+          MRRmark · Verified revenue · Not financial advice
         </footer>
       </div>
     </main>

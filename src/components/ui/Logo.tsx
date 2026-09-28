@@ -1,4 +1,4 @@
-/** Brand mark — stacked ledger bars in an emerald tile. Shared by landing + sidebar. */
+/** Brand mark — stacked MRR bars in an emerald tile. Shared by landing + sidebar. */
 export function Logo({ size = 28 }: { size?: number }) {
   return (
     <span className="grid shrink-0 place-items-center rounded-[8px] bg-accent text-accent-ink shadow-card"

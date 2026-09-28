@@ -1,4 +1,4 @@
-/** Thin client for Ledger cloud APIs. Token lives in localStorage. */
+/** Thin client for MRRmark cloud APIs. Token lives in localStorage. */
 
 const TOKEN_KEY = 'ledger-cloud-token'
 
