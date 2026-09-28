@@ -8,7 +8,7 @@ import { dimensionValues } from '@/src/lib/dashboard'
 import type { MrrMode, ComparePeriod } from '@/src/lib/types'
 import { ThemeToggle } from '@/src/components/ui/ThemeToggle'
 import { Select } from '@/src/components/ui/Select'
-import { NAV_ITEMS } from '@/src/components/layout/Sidebar'
+import { NAV_ITEMS } from '@/src/lib/nav'
 
 const COMPARE: { v: ComparePeriod; label: string }[] = [
   { v: 'none', label: 'Off' }, { v: 'mom', label: 'MoM' }, { v: 'qoq', label: 'QoQ' }, { v: 'yoy', label: 'YoY' },

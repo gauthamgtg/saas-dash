@@ -1,10 +1,13 @@
 'use client'
 import { useMemo } from 'react'
+import Link from 'next/link'
 import { useApp, type ViewId } from '@/src/state/AppContext'
 import { findWarnings } from '@/src/lib/issues'
 import { applyFilters } from '@/src/lib/dashboard'
 import { computeAlerts } from '@/src/lib/alerts'
 import { PALETTE_EVENT } from '@/src/components/CommandPalette'
+import { NAV_ITEMS } from '@/src/lib/nav'
+import { Logo } from '@/src/components/ui/Logo'
 
 const I = (d: React.ReactNode) => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{d}</svg>
@@ -45,40 +48,6 @@ const ICONS: Record<ViewId, React.ReactNode> = {
   connectors: I(<><path d="M6 4.5H4.5a2 2 0 0 0 0 4H6" /><path d="M10 7.5h1.5a2 2 0 0 1 0 4H10" /><path d="M6 6.5h4" /></>),
 }
 
-export const NAV_ITEMS: { id: ViewId; label: string; group: string }[] = [
-  { id: 'briefing', label: 'Executive Briefing', group: 'Executive' },
-  { id: 'board', label: 'Board Pack', group: 'Executive' },
-  { id: 'update', label: 'Investor Update', group: 'Executive' },
-  { id: 'arrbridge', label: 'ARR Bridge', group: 'Executive' },
-  { id: 'alerts', label: 'Alerts', group: 'Executive' },
-  { id: 'issues', label: 'Data Issues', group: 'Executive' },
-  { id: 'overview', label: 'Overview', group: 'Analysis' },
-  { id: 'mrr', label: 'MRR', group: 'Analysis' },
-  { id: 'growth', label: 'Growth', group: 'Analysis' },
-  { id: 'forecast', label: 'Forecast', group: 'Analysis' },
-  { id: 'goals', label: 'Goals & Pacing', group: 'Analysis' },
-  { id: 'salesreps', label: 'Sales Reps', group: 'Analysis' },
-  { id: 'pipeline', label: 'Pipeline', group: 'Analysis' },
-  { id: 'trends', label: 'Trends', group: 'Analysis' },
-  { id: 'cohorts', label: 'Cohorts', group: 'Analysis' },
-  { id: 'retention', label: 'Retention Lab', group: 'Analysis' },
-  { id: 'segments', label: 'Segments', group: 'Analysis' },
-  { id: 'geo', label: 'Markets', group: 'Analysis' },
-  { id: 'customers', label: 'Customers', group: 'Analysis' },
-  { id: 'health', label: 'Customer Health', group: 'Analysis' },
-  { id: 'churnwarn', label: 'Churn Warning', group: 'Analysis' },
-  { id: 'expansion', label: 'Expansion Radar', group: 'Analysis' },
-  { id: 'risk', label: 'Risk & Concentration', group: 'Analysis' },
-  { id: 'bins', label: 'Revenue Bins', group: 'Analysis' },
-  { id: 'benchmarks', label: 'Benchmarks', group: 'Analysis' },
-  { id: 'unitecon', label: 'Unit Economics', group: 'Analysis' },
-  { id: 'efficiency', label: 'Efficiency Lab', group: 'Analysis' },
-  { id: 'product', label: 'Product & Deferred', group: 'Analysis' },
-  { id: 'pricing', label: 'Price Changes', group: 'Analysis' },
-  { id: 'migrations', label: 'Plan Migrations', group: 'Analysis' },
-  { id: 'collections', label: 'Cash Calendar', group: 'Analysis' },
-  { id: 'connectors', label: 'Workspace', group: 'Platform' },
-]
 
 export function Sidebar() {
   const { state, dispatch } = useApp()
@@ -109,13 +78,13 @@ export function Sidebar() {
 
   return (
     <nav className="sticky top-0 flex h-screen w-[248px] shrink-0 flex-col border-r border-side-line bg-side px-3 pb-3 pt-4">
-      <div className="mb-3 flex items-center gap-2.5 px-1.5">
+      <Link href="/" title="Back to the Ledger home page" className="mb-3 flex items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-side-2">
         <Logo />
         <div className="min-w-0">
           <div className="text-[14px] font-semibold leading-none tracking-tight text-side-ink">Ledger</div>
           <div className="mt-1 truncate text-[11.5px] leading-none text-side-faint">{state.workspace.name}</div>
         </div>
-      </div>
+      </Link>
 
       <button onClick={() => window.dispatchEvent(new CustomEvent(PALETTE_EVENT))}
         className="mb-4 flex h-8 w-full items-center gap-2 rounded-lg border border-side-line bg-side-active px-2.5 text-left text-[12.5px] text-side-faint shadow-card transition-colors hover:text-side-soft">
@@ -165,18 +134,11 @@ export function Sidebar() {
           </button>
         </div>
       )}
+      <Link href="/"
+        className="mt-2 flex h-8 items-center gap-2 rounded-lg px-2 text-[12.5px] font-medium text-side-soft transition-colors hover:bg-side-2 hover:text-side-ink">
+        {I(<><path d="M2.5 7.5 8 3l5.5 4.5" /><path d="M4 6.5V13h8V6.5" /></>)}
+        Back to home
+      </Link>
     </nav>
-  )
-}
-
-/** Brand mark — stacked ledger bars in an emerald tile. Shared by landing + sidebar. */
-export function Logo({ size = 28 }: { size?: number }) {
-  return (
-    <span className="grid shrink-0 place-items-center rounded-[8px] bg-accent text-accent-ink shadow-card"
-      style={{ width: size, height: size, backgroundImage: 'linear-gradient(160deg, rgba(255,255,255,0.18), transparent 55%)' }}>
-      <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-        <rect x="2" y="9" width="3" height="5" rx="1" /><rect x="6.5" y="5.5" width="3" height="8.5" rx="1" /><rect x="11" y="2" width="3" height="12" rx="1" />
-      </svg>
-    </span>
   )
 }

@@ -1,5 +1,8 @@
 'use client'
-import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
+import { createContext, useContext, useEffect, useMemo, useReducer, useState } from 'react'
+import { STORAGE_KEY } from './keys'
+import { hasPendingFile } from '@/src/lib/pendingImport'
+import { sampleTransactions } from '@/src/lib/sampleData'
 import type { Transaction, Controls, BinDef } from '@/src/lib/types'
 import { DEFAULT_BINS } from '@/src/lib/types'
 import type { Mapping } from '@/src/lib/mapping'
@@ -72,7 +75,6 @@ const initial: State = {
   workspace: DEFAULT_WORKSPACE, connectors: DEFAULT_CONNECTORS, cashOnHand: null,
 }
 
-const STORAGE_KEY = 'ledger-state-v1'
 
 function persist(s: State) {
   if (typeof localStorage === 'undefined' || !s.transactions || s.present) return
@@ -184,6 +186,8 @@ const Ctx = createContext<{ state: State; dispatch: React.Dispatch<Action> } | n
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial)
+  // read during render: the importer's own effect (a child) consumes the file before ours runs
+  const [importing] = useState(hasPendingFile)
   useEffect(() => {
     const hash = window.location.hash
     if (hash.startsWith('#s=')) {
@@ -202,6 +206,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })
       return
     }
+    // landing-page handoffs: "Open demo" → /app?demo=1; a dropped file → start the importer empty
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('demo') === '1') {
+      window.history.replaceState(null, '', window.location.pathname)
+      dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })
+      return
+    }
+    if (importing) return
     const s = loadFromStorage()
     if (s) dispatch({ type: 'load', state: s })
   }, [])

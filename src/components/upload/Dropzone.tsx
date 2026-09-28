@@ -1,5 +1,6 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { parseFile } from '@/src/lib/parse'
 import type { ParsedFile } from '@/src/lib/parse'
 import { autoDetect, missingRequired } from '@/src/lib/mapping'
@@ -15,7 +16,9 @@ import { MappingForm } from './MappingForm'
 import { FxForm } from './FxForm'
 import { IssueFixer } from './IssueFixer'
 import { Select } from '@/src/components/ui/Select'
-import { Landing, LandingNav, DropCard } from './Landing'
+import { DropCard } from './DropCard'
+import { SiteNav } from '@/src/components/layout/SiteNav'
+import { takePendingFile } from '@/src/lib/pendingImport'
 
 const DATE_OPTS: { v: DateOrder; label: string }[] = [
   { v: 'auto', label: 'Auto-detect' }, { v: 'dmy', label: 'Day first · DD/MM/YYYY' },
@@ -36,6 +39,9 @@ export function Dropzone() {
   const [rowDateOrders, setRowDateOrders] = useState<Record<number, Exclude<DateOrder, 'auto'>>>({})
   const [removedRows, setRemovedRows] = useState<Set<number>>(new Set())
   const [fileName, setFileName] = useState('')
+
+  // a file dropped on the landing page arrives here via client-side navigation
+  useEffect(() => { const f = takePendingFile(); if (f) onFile(f) }, [])
 
   async function onFile(file: File) {
     try {
@@ -110,14 +116,43 @@ export function Dropzone() {
   const loadSample = () => dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })
   const template = () => downloadCsv('ledger-sample-template', sampleCsvRows())
 
-  if (!parsed || !mapping) return <Landing onFile={onFile} onSample={loadSample} onTemplate={template} error={error} />
+  const homeLink = (
+    <Link href="/" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-paper px-3 text-[13px] font-medium text-ink-soft shadow-card transition-colors hover:bg-paper-2 hover:text-ink">
+      <span aria-hidden>←</span> Home
+    </Link>
+  )
+
+  if (!parsed || !mapping) {
+    return (
+      <div className="min-h-screen">
+        <SiteNav right={homeLink} />
+        <main className="mx-auto max-w-2xl px-6 py-16">
+          <div className="rise text-center">
+            <div className="text-[13px] font-semibold text-accent">Import</div>
+            <h1 className="mt-1 text-[34px] font-semibold tracking-[-0.035em] text-ink">Bring in your payments</h1>
+            <p className="mx-auto mt-2 max-w-md text-[15px] text-ink-soft">One row per charge or invoice. Columns auto-detect, and nothing leaves this browser tab.</p>
+          </div>
+          <div className="rise mt-8" style={{ animationDelay: '60ms' }}><DropCard onFile={onFile} /></div>
+          {error && <p role="alert" className="mt-3 rounded-xl border border-neg bg-paper px-4 py-2.5 text-[13px] text-neg shadow-card">{error}</p>}
+          <div className="rise mt-6 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: '120ms' }}>
+            <button onClick={loadSample} className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-[14px] font-semibold text-accent-ink shadow-card transition-all hover:-translate-y-px hover:shadow-pop">
+              Use sample data <span aria-hidden>→</span>
+            </button>
+            <button onClick={template} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line-strong bg-paper px-4 text-[14px] font-medium text-ink shadow-card transition-colors hover:bg-paper-2">
+              Download CSV template
+            </button>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   const step = missing.length ? 2 : valid > 0 ? 4 : 3
   const STEPS = ['Upload', 'Map columns', currencies.length > 1 ? 'Currency' : 'Date format', 'Review & analyze']
 
   return (
     <div className="min-h-screen">
-      <LandingNav onSample={loadSample} links={false} />
+      <SiteNav right={homeLink} />
       <div className="mx-auto max-w-4xl space-y-8 px-6 py-12">
       <header className="rise space-y-6">
         <div>

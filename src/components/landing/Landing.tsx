@@ -1,11 +1,13 @@
-'use client'
-import { useMemo, useState } from 'react'
-import { useApp } from '@/src/state/AppContext'
+import Link from 'next/link'
 import { sampleTransactions } from '@/src/lib/sampleData'
 import { buildMatrix, mrrOf, arr, activeCustomers, nrr, movementSeries } from '@/src/lib/engine'
 import { fmtMoney, fmtMoneyShort, fmtPct } from '@/src/lib/format'
-import { ThemeToggle } from '@/src/components/ui/ThemeToggle'
-import { Logo, NAV_ITEMS } from '@/src/components/layout/Sidebar'
+import { NAV_ITEMS } from '@/src/lib/nav'
+import { Logo } from '@/src/components/ui/Logo'
+import { SiteNav } from '@/src/components/layout/SiteNav'
+import { HeroUpload, TemplateButton, NavCta, ShareRedirect } from './islands'
+
+// Server-rendered marketing page. Only the upload box, CSV download and nav CTA hydrate.
 
 const Ico = ({ d, size = 16 }: { d: React.ReactNode; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{d}</svg>
@@ -16,77 +18,14 @@ const ARROW = <path d="M3 8h10M9 4l4 4-4 4" />
 const BTN_PRIMARY = 'inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-[14.5px] font-semibold text-accent-ink shadow-card transition-all hover:-translate-y-px hover:shadow-pop'
 const BTN_GHOST = 'inline-flex h-11 items-center gap-2 rounded-xl border border-line-strong bg-paper px-5 text-[14.5px] font-medium text-ink shadow-card transition-colors hover:bg-paper-2'
 
-/** Top navigation shared by the landing page and the import wizard. */
-export function LandingNav({ onSample, links = true }: { onSample: () => void; links?: boolean }) {
-  return (
-    <header className="sticky top-0 z-30 border-b border-line bg-bone/75 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-6">
-        <a href="#" className="flex items-center gap-2.5">
-          <Logo size={28} />
-          <span className="text-[16px] font-semibold tracking-[-0.02em] text-ink">Ledger</span>
-        </a>
-        {links && (
-          <nav className="hidden items-center gap-6 text-[13.5px] text-ink-soft md:flex">
-            <a href="#product" className="transition-colors hover:text-ink">Product</a>
-            <a href="#features" className="transition-colors hover:text-ink">Features</a>
-            <a href="#how" className="transition-colors hover:text-ink">How it works</a>
-            <a href="#privacy" className="transition-colors hover:text-ink">Privacy</a>
-          </nav>
-        )}
-        <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle compact />
-          <button onClick={onSample}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3.5 text-[13px] font-medium text-bone shadow-card transition-opacity hover:opacity-90">
-            Open demo <Ico size={13} d={ARROW} />
-          </button>
-        </div>
-      </div>
-    </header>
-  )
-}
-
-/** File drop target. Calls onFile for both drag-drop and the browse dialog. */
-export function DropCard({ onFile, compact }: { onFile: (f: File) => void; compact?: boolean }) {
-  const [over, setOver] = useState(false)
-  return (
-    <label
-      onDragOver={(e) => { e.preventDefault(); setOver(true) }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files?.[0]; if (f) onFile(f) }}
-      className={`glow-ring group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border bg-paper text-center shadow-pop transition-all ${
-        compact ? 'gap-2 p-6' : 'gap-3 p-10'} ${over ? 'scale-[1.01] border-accent' : 'border-line'}`}
-      style={over ? { background: 'color-mix(in srgb, var(--accent) 5%, var(--paper))' } : undefined}>
-      <span className={`grid place-items-center rounded-2xl bg-navy text-accent transition-transform group-hover:-translate-y-0.5 ${compact ? 'h-10 w-10' : 'h-14 w-14'}`}>
-        <Ico size={compact ? 18 : 24} d={UPLOAD} />
-      </span>
-      <div>
-        <div className={`font-semibold tracking-[-0.015em] text-ink ${compact ? 'text-[15px]' : 'text-[18px]'}`}>
-          {over ? 'Release to import' : 'Drop your payments export'}
-        </div>
-        <div className="mt-1 text-[13.5px] text-ink-soft">
-          or <span className="font-medium text-accent underline underline-offset-4 group-hover:decoration-accent">browse files</span>
-        </div>
-      </div>
-      <div className="mt-1 flex gap-1.5">
-        {['.csv', '.xlsx', '.xls'].map((x) => (
-          <span key={x} className="rounded-md border border-line bg-paper-2 px-2 py-0.5 font-mono text-[11px] text-ink-soft">{x}</span>
-        ))}
-      </div>
-      <input type="file" accept=".csv,.xlsx,.xls" className="sr-only"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
-    </label>
-  )
-}
-
-/** Faux app window showing real numbers computed from the bundled sample dataset. */
+/** Faux app window showing real numbers computed (on the server, at build time) from the sample dataset. */
 function ProductPreview() {
-  const { state } = useApp()
-  const d = useMemo(() => {
-    const m = buildMatrix(sampleTransactions(), state.controls.mode)
+  const d = (() => {
+    const m = buildMatrix(sampleTransactions(), 'activity')
     const months = m.months
     const last = months[months.length - 1], prev = months[months.length - 2]
     const series = months.map((mo) => mrrOf(m, mo))
-    const moves = movementSeries(m, { reactivationGapK: state.controls.reactivationGapK }).slice(-12)
+    const moves = movementSeries(m, { reactivationGapK: 1 }).slice(-12)
     const mrr = mrrOf(m, last), mrrPrev = mrrOf(m, prev)
     return {
       series, moves, last,
@@ -97,7 +36,7 @@ function ProductPreview() {
         { k: 'Active customers', v: String(activeCustomers(m, last)), d: null },
       ],
     }
-  }, [state.controls.mode, state.controls.reactivationGapK])
+  })()
 
   const W = 640, H = 200
   const max = Math.max(...d.series) * 1.08 || 1
@@ -195,12 +134,11 @@ const STEPS = [
   { t: 'Analyze', b: 'Metrics compute instantly. Filter by region, plan, period, and compare MoM, QoQ or YoY.' },
 ]
 
-export function Landing({ onFile, onSample, onTemplate, error }: {
-  onFile: (f: File) => void; onSample: () => void; onTemplate: () => void; error: string
-}) {
+export function Landing() {
   return (
     <div className="min-h-screen">
-      <LandingNav onSample={onSample} />
+      <ShareRedirect />
+      <SiteNav links right={<NavCta />} />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -222,11 +160,11 @@ export function Landing({ onFile, onSample, onTemplate, error }: {
               forecasts and a board-ready pack — in seconds, with no sign-up.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <button onClick={onSample} className={BTN_PRIMARY}>Explore with sample data <Ico size={15} d={ARROW} /></button>
-              <button onClick={onTemplate} className={BTN_GHOST}>
+              <Link href="/app?demo=1" className={BTN_PRIMARY}>Explore with sample data <Ico size={15} d={ARROW} /></Link>
+              <TemplateButton className={BTN_GHOST}>
                 <Ico size={15} d={<><path d="M8 2.5v7M5 7l3 3 3-3" /><path d="M3 11v1.5A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5V11" /></>} />
                 CSV template
-              </button>
+              </TemplateButton>
             </div>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-ink-faint">
               {['No account needed', 'CSV, XLSX, XLS', 'Multi-currency FX'].map((f) => (
@@ -237,11 +175,8 @@ export function Landing({ onFile, onSample, onTemplate, error }: {
             </div>
           </div>
 
-          <div className="rise" style={{ animationDelay: '90ms' }}>
-            <DropCard onFile={onFile} />
-            {error && (
-              <p role="alert" className="mt-3 rounded-xl border border-neg bg-paper px-4 py-2.5 text-[13px] text-neg shadow-card">{error}</p>
-            )}
+          <div id="upload" className="rise scroll-mt-24" style={{ animationDelay: '90ms' }}>
+            <HeroUpload />
             <p className="mt-3 text-center text-[12.5px] text-ink-faint">
               Using Stripe? Open the demo, then connect it under <span className="font-medium text-ink-soft">Workspace</span>.
             </p>
@@ -321,10 +256,10 @@ export function Landing({ onFile, onSample, onTemplate, error }: {
               Files are parsed and analyzed locally. Cloud features — Stripe sync, Trust pages, file storage — are opt-in and live under Workspace.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <button onClick={onSample} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-[14.5px] font-semibold text-[#0c1511] transition-transform hover:-translate-y-px">
+              <Link href="/app?demo=1" className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-[14.5px] font-semibold text-[#0c1511] transition-transform hover:-translate-y-px">
                 Explore with sample data <Ico size={15} d={ARROW} />
-              </button>
-              <a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+              </Link>
+              <a href="#upload"
                 className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/15 px-5 text-[14.5px] font-medium text-white/90 transition-colors hover:bg-white/5">
                 <Ico size={15} d={UPLOAD} />Upload your file
               </a>
