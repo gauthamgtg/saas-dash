@@ -8,11 +8,29 @@ import { summarizePipeline } from '../pipeline'
 import { nrr, arpa, grr, logoChurnRate } from './kpis'
 import { ltvWithExpansion } from './retentionDepth'
 
-/** CAC by marketing/sales channel (blended over months where that channel has spend). */
-export function cacByChannel(m: Matrix, spend: SpendRow[]): {
+const srcKey = (s: string) => s.trim().toLowerCase()
+
+/** New customers acquired in months with S&M spend, keyed by lower-cased acquisition source ('' = unknown). */
+function newBySource(m: Matrix, spend: SpendRow[], sourceOf: Map<string, string>): Map<string, number> {
+  const sm = spendByMonth(spend, ['marketing', 'sales'])
+  const out = new Map<string, number>()
+  for (const c of m.customers) {
+    const first = m.months.find((mo) => get(m, c, mo) > 0)
+    if (!first || !sm.has(first)) continue
+    const k = srcKey(sourceOf.get(c) ?? '')
+    out.set(k, (out.get(k) ?? 0) + 1)
+  }
+  return out
+}
+
+/**
+ * CAC by marketing/sales channel. With an acquisition-source column, new customers are credited to
+ * the spend channel of the same name (unknown-source customers spread by spend share); without one,
+ * every channel gets new logos in proportion to its spend — which makes all channel CACs equal.
+ */
+export function cacByChannel(m: Matrix, spend: SpendRow[], sourceOf?: Map<string, string>): {
   channel: string
   smSpend: number
-  // attributed approx: channel share of S&M × new customers
   estimatedNew: number
   cac: number | null
 }[] {
@@ -23,13 +41,11 @@ export function cacByChannel(m: Matrix, spend: SpendRow[]): {
     byCh.set(r.channel, (byCh.get(r.channel) ?? 0) + r.amount)
     total += r.amount
   }
-  const fresh = [...newCustomersByMonth(m).values()].reduce((s, n) => s + n, 0)
-  if (!total || !fresh) {
-    return [...byCh.entries()].map(([channel, smSpend]) => ({ channel, smSpend, estimatedNew: 0, cac: null }))
-  }
+  const by = sourceOf?.size ? newBySource(m, spend, sourceOf) : null
+  const fresh = by ? by.get('') ?? 0 : [...newCustomersByMonth(m).values()].reduce((s, n) => s + n, 0)
   return [...byCh.entries()]
     .map(([channel, smSpend]) => {
-      const estimatedNew = fresh * (smSpend / total)
+      const estimatedNew = (by?.get(srcKey(channel)) ?? 0) + (total ? fresh * (smSpend / total) : 0)
       return { channel, smSpend, estimatedNew, cac: estimatedNew > 0 ? smSpend / estimatedNew : null }
     })
     .sort((a, b) => b.smSpend - a.smSpend)
@@ -102,12 +118,17 @@ export function salesEfficiency(m: Matrix, spend: SpendRow[], windowMonths = 3):
   return netNewArr / spendSum
 }
 
-/** Paid vs organic proxy: channels tagged 'organic'/'seo'/'content' vs rest of S&M. */
-export function paidVsOrganicCac(m: Matrix, spend: SpendRow[]): {
+/**
+ * Paid vs organic CAC. Spend splits by channel name (organic/SEO/content/referral vs the rest of S&M).
+ * New customers split by their acquisition source when the data has one; otherwise by spend share,
+ * which forces paid CAC = organic CAC (flagged via `attributed: false`).
+ */
+export function paidVsOrganicCac(m: Matrix, spend: SpendRow[], sourceOf?: Map<string, string>): {
   paidSpend: number
   organicSpend: number
   paidCac: number | null
   organicCac: number | null
+  attributed: boolean
 } {
   const organicRe = /organic|seo|content|referral|word.?of.?mouth/i
   let paidSpend = 0, organicSpend = 0
@@ -117,15 +138,24 @@ export function paidVsOrganicCac(m: Matrix, spend: SpendRow[]): {
     else paidSpend += r.amount
   }
   const totalSm = paidSpend + organicSpend || 1
-  const series = cacSeries(m, spend)
-  const totalNew = series.reduce((s, p) => s + p.newCustomers, 0)
-  const paidNew = totalNew * (paidSpend / totalSm)
-  const orgNew = totalNew * (organicSpend / totalSm)
+  let paidNew = 0, orgNew = 0, unknown = 0
+  const by = sourceOf?.size ? newBySource(m, spend, sourceOf) : null
+  if (by) {
+    // direct / type-in traffic is organic on the acquisition side
+    for (const [k, n] of by) {
+      if (!k) unknown += n
+      else if (organicRe.test(k) || /direct/.test(k)) orgNew += n
+      else paidNew += n
+    }
+  } else unknown = cacSeries(m, spend).reduce((s, p) => s + p.newCustomers, 0)
+  paidNew += unknown * (paidSpend / totalSm)
+  orgNew += unknown * (organicSpend / totalSm)
   return {
     paidSpend,
     organicSpend,
     paidCac: paidNew > 0 ? paidSpend / paidNew : null,
     organicCac: orgNew > 0 ? organicSpend / orgNew : null,
+    attributed: !!by,
   }
 }
 

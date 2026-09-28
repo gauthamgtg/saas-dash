@@ -9,7 +9,8 @@ const FIELDS: { field: ColumnField; label: string }[] = [
   { field: 'invoiceNumber', label: 'Invoice Number' }, { field: 'name', label: 'Name' },
   { field: 'country', label: 'Country' }, { field: 'region', label: 'Region' },
   { field: 'businessModel', label: 'Business Model' }, { field: 'plan', label: 'Plan' },
-  { field: 'salesRep', label: 'Sales Rep' }, { field: 'currency', label: 'Currency' },
+  { field: 'salesRep', label: 'Sales Rep' }, { field: 'source', label: 'Acquisition Source' },
+  { field: 'currency', label: 'Currency' },
   { field: 'customerFlag', label: 'Customer Flag' }, { field: 'refundFlag', label: 'Refund Flag' },
 ]
 

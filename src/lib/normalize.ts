@@ -108,6 +108,7 @@ export function normalizeRow(
       businessModel: get(raw, mapping.businessModel),
       plan: get(raw, mapping.plan),
       salesRep: get(raw, mapping.salesRep),
+      source: get(raw, mapping.source),
       currency,
       amountNative: amt,
       amountBase: isRefund ? -Math.abs(base) : Math.abs(base),

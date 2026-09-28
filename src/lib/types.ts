@@ -14,6 +14,7 @@ export type Transaction = {
   businessModel: string | null
   plan?: string | null // pricing plan (e.g. "Pro $75/mo")
   salesRep?: string | null // salesperson credited with the account's revenue
+  source?: string | null // acquisition channel (e.g. "Google Ads", "Referral") — enables attributed CAC
   currency: string | null // native
   amountNative: number
   amountBase: number // FX-converted, signed (negative if a subtracted refund)

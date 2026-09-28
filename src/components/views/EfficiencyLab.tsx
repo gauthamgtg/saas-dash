@@ -26,10 +26,12 @@ export function EfficiencyLab() {
 
   const d = useMemo(() => {
     if (!spend?.length || !m.months.length) return null
-    const channels = cacByChannel(m, spend)
+    const sourceOf = new Map<string, string>()
+    for (const t of txs) if (t.source && !sourceOf.has(t.customerId)) sourceOf.set(t.customerId, t.source)
+    const channels = cacByChannel(m, spend, sourceOf)
     const cohorts = cohortCacPayback(m, spend, gm)
     const ltv = expansionLtvSummary(m, gm)
-    const paidOrg = paidVsOrganicCac(m, spend)
+    const paidOrg = paidVsOrganicCac(m, spend, sourceOf)
     const se = salesEfficiency(m, spend, 3)
     const r40 = ruleOf40Trend(m, spend)
     const burn = burnMultiple(m, spend)
@@ -46,9 +48,9 @@ export function EfficiencyLab() {
         Growth: +((r.growth ?? 0) * 100).toFixed(1),
         Margin: +((r.margin ?? 0) * 100).toFixed(1),
       })),
-      channelBars: channels.slice(0, 10).map((c) => ({ channel: c.channel, CAC: c.cac == null ? 0 : Math.round(c.cac) })),
+      channelBars: channels.filter((c) => c.cac != null).slice(0, 10).map((c) => ({ channel: c.channel, CAC: c.cac == null ? 0 : Math.round(c.cac) })),
     }
-  }, [m, spend, gm])
+  }, [m, spend, gm, txs])
 
   if (!spend?.length) {
     return (
@@ -76,12 +78,15 @@ export function EfficiencyLab() {
         <KpiCard label="Burn multiple" value={d.burn == null ? '—' : !Number.isFinite(d.burn) ? '∞' : `${d.burn.toFixed(1)}×`} />
         <KpiCard label="Classic LTV" value={fmtMoneyShort(d.ltv.classicLtv)} />
         <KpiCard label="Expansion LTV" value={fmtMoneyShort(d.ltv.expansionLtv)} hint="NRR-lifted" tone="pos" />
-        <KpiCard label="Paid CAC (proxy)" value={fmtMoney(d.paidOrg.paidCac)} />
-        <KpiCard label="Organic CAC (proxy)" value={fmtMoney(d.paidOrg.organicCac)} />
+        <KpiCard label={`Paid CAC${d.paidOrg.attributed ? '' : ' (proxy)'}`} value={fmtMoney(d.paidOrg.paidCac)}
+          hint={d.paidOrg.attributed ? 'paid S&M ÷ paid-sourced logos' : 'map an acquisition source column to split'} />
+        <KpiCard label={`Organic CAC${d.paidOrg.attributed ? '' : ' (proxy)'}`} value={fmtMoney(d.paidOrg.organicCac)}
+          tone={d.paidOrg.attributed && (d.paidOrg.organicCac ?? Infinity) < (d.paidOrg.paidCac ?? 0) ? 'pos' : 'default'}
+          hint={d.paidOrg.attributed ? 'SEO/content ÷ organic, referral & direct logos' : 'equals paid CAC without source data'} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="CAC by channel" sub="S&M allocated by channel share × new logos">
+        <Panel title="CAC by channel" sub={d.paidOrg.attributed ? 'S&M spend ÷ new logos sourced from that channel · channels with no sourced logos omitted' : 'proxy — logos allocated by spend share, so channels look equal until you map an acquisition source'}>
           <BarsChart data={d.channelBars} xKey="channel" horizontal height={Math.max(200, d.channelBars.length * 32)}
             series={[{ key: 'CAC', color: CHART.accent }]} />
         </Panel>

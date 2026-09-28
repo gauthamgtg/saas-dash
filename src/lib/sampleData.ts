@@ -39,7 +39,7 @@ export function sampleCsvRows(): Record<string, unknown>[] {
   return sampleTransactions().map((t) => ({
     payment_id: t.paymentId, invoice_number: t.invoiceNumber, date: t.date.toISOString().slice(0, 10),
     customer_id: t.customerId, customer_name: t.name, country: t.country, region: t.region,
-    business_model: t.businessModel, plan: t.plan, sales_rep: t.salesRep, currency: t.currency,
+    business_model: t.businessModel, plan: t.plan, sales_rep: t.salesRep, acquisition_source: t.source, currency: t.currency,
     amount: t.amountNative, refund_flag: t.isRefund ? 'true' : 'false',
   }))
 }
@@ -49,6 +49,13 @@ export const DEMO_END = '2026-09'
 const WINDOW = 24
 export const DEMO_SEED = 90
 const MODEL_MIX: [string, number][] = [['Self-Serve', 0.38], ['SMB', 0.32], ['Marketplace', 0.14], ['Enterprise', 0.16]]
+// acquisition source per model; paid names match SPEND_CHANNELS so channel CAC can attribute
+const SOURCE_MIX: Record<string, [string, number][]> = {
+  'Self-Serve': [['Google Ads', 0.3], ['Content & SEO', 0.3], ['Direct', 0.2], ['Referral', 0.1], ['LinkedIn Ads', 0.1]],
+  SMB: [['Google Ads', 0.3], ['LinkedIn Ads', 0.25], ['Content & SEO', 0.2], ['Referral', 0.15], ['Events', 0.1]],
+  Marketplace: [['LinkedIn Ads', 0.3], ['Referral', 0.25], ['Content & SEO', 0.25], ['Events', 0.2]],
+  Enterprise: [['SDR team', 0.45], ['Events', 0.25], ['LinkedIn Ads', 0.15], ['Referral', 0.15]],
+}
 const EXISTING_SHARE = 0.35 // accounts already paying when the export window opens
 
 /** Realistic 24-month multi-region/model/currency payment log with churn, expansion, reactivation and refunds. */
@@ -65,6 +72,9 @@ export function sampleTransactions(seed = DEMO_SEED): Transaction[] {
   const signupMonth = () => { let r = rand() * signupTotal; for (let i = 0; i < signupW.length; i++) if ((r -= signupW[i]) < 0) return i; return months.length - 1 }
   const txs: Transaction[] = []
   let pid = 1000, inv = 5000
+  // own stream so adding attributes never reshuffles the tuned revenue series
+  const srcRand = mulberry32(seed ^ 0x5eed)
+  const sourceFor = (model: string) => { let r = srcRand(); for (const [v, w] of SOURCE_MIX[model]) if ((r -= w) < 0) return v; return SOURCE_MIX[model][0][0] }
 
   const N = 150
   for (let c = 0; c < N; c++) {
@@ -75,6 +85,7 @@ export function sampleTransactions(seed = DEMO_SEED): Transaction[] {
     const name = names[c]
     const customerId = `C${String(c + 1).padStart(3, '0')}`
     let planIdx = PLAN_IDX_BY_MODEL[model]
+    const source = sourceFor(model)
     // self-serve accounts mostly have no rep; sold accounts get a stable owner
     const salesRep = model === 'Self-Serve' && rand() < 0.7 ? 'Self-serve (no rep)' : pick(REPS.slice(0, 5))
     // Enterprise pays more; self-serve less. Base monthly revenue in USD.
@@ -119,7 +130,7 @@ export function sampleTransactions(seed = DEMO_SEED): Transaction[] {
       const invoiceNumber = `INV-${inv++}`
       txs.push({
         paymentId: `P${pid++}`, invoiceNumber, date, month, customerId, name, country, region,
-        businessModel: model, plan, salesRep, currency, amountNative: Math.round(amountBase / rate), amountBase, isRefund: false,
+        businessModel: model, plan, salesRep, source, currency, amountNative: Math.round(amountBase / rate), amountBase, isRefund: false,
       })
       // occasional refund a month later, linked by invoice
       if (rand() < 0.012 && i + 1 < months.length) {
@@ -127,7 +138,7 @@ export function sampleTransactions(seed = DEMO_SEED): Transaction[] {
         const rDate = new Date(`${rMonth}-05T00:00:00Z`)
         txs.push({
           paymentId: `P${pid++}`, invoiceNumber, date: rDate, month: rMonth, customerId, name, country, region,
-          businessModel: model, plan, salesRep, currency, amountNative: -Math.round(amountBase / rate), amountBase: -amountBase, isRefund: true,
+          businessModel: model, plan, salesRep, source, currency, amountNative: -Math.round(amountBase / rate), amountBase: -amountBase, isRefund: true,
         })
       }
       // churn check — price increases lift churn on the affected plan for the next quarter
