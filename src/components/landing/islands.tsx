@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DropCard } from '@/src/components/upload/DropCard'
+import { WorldMap } from '@/src/components/ui/WorldMap'
 import { setPendingFile } from '@/src/lib/pendingImport'
 import { downloadCsv } from '@/src/lib/csv'
 import { sampleCsvRows } from '@/src/lib/sampleData'
@@ -38,4 +39,21 @@ export function NavCta() {
 export function ShareRedirect() {
   useEffect(() => { if (location.hash.startsWith('#s=')) location.replace(`/app${location.hash}`) }, [])
   return null
+}
+
+/** World map for the markets card: plain props from the server → the client WorldMap. */
+export function LandingMap({ rows }: { rows: { key: string; label: string; t: number; title: string; dot: { lat: number; lon: number } | null }[] }) {
+  const [hover, setHover] = useState<string | null>(null)
+  const fill = (t: number) => `color-mix(in srgb, var(--accent) ${Math.round(22 + t * 78)}%, var(--paper))`
+  const values = new Map(rows.map((r) => [r.key, { label: r.label, fill: fill(r.t), title: r.title }]))
+  const points = rows.flatMap((r) => (r.dot ? [{ key: r.key, lat: r.dot.lat, lon: r.dot.lon, fill: fill(r.t), title: r.title }] : []))
+  const hovered = rows.find((r) => r.key === hover)
+  return (
+    <div className="relative">
+      <WorldMap values={values} points={points} hovered={hover} onHover={setHover} />
+      <div className="pointer-events-none absolute bottom-2 left-2 rounded-lg border border-line bg-paper/90 px-2.5 py-1.5 text-[12px] text-ink-soft shadow-card backdrop-blur">
+        {hovered ? hovered.title : 'Hover a country'}
+      </div>
+    </div>
+  )
 }

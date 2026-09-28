@@ -44,7 +44,7 @@ export function sampleCsvRows(): Record<string, unknown>[] {
 
 /** Realistic 18-month multi-region/model/currency payment log with churn, expansion, reactivation and refunds. */
 export function sampleTransactions(): Transaction[] {
-  const rand = mulberry32(20260702)
+  const rand = mulberry32(31337)
   const pick = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)]
   const end = '2026-06'
   const start = addMonths(end, -17)

@@ -44,6 +44,11 @@ export type Controls = {
   comparePeriod: ComparePeriod // prior-period comparison basis for ghost overlays
 }
 
+export const DEFAULT_CONTROLS: Controls = {
+  mode: 'activity', includeRefunds: true, reactivationGapK: 1,
+  dormancyDays: 90, atRiskStreak: 3, grossMargin: 0.8, comparePeriod: 'yoy',
+}
+
 export const DEFAULT_BINS: BinDef[] = [
   { label: 'Less than $250', min: -Infinity, max: 250 },
   { label: '$251 - $500', min: 250, max: 500 },

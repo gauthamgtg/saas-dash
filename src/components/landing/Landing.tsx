@@ -6,6 +6,8 @@ import { NAV_ITEMS } from '@/src/lib/nav'
 import { Logo } from '@/src/components/ui/Logo'
 import { SiteNav } from '@/src/components/layout/SiteNav'
 import { HeroUpload, TemplateButton, NavCta, ShareRedirect } from './islands'
+import { Showcase, MetricTicker } from './Showcase'
+import { landingData } from './data'
 
 // Server-rendered marketing page. Only the upload box, CSV download and nav CTA hydrate.
 
@@ -119,15 +121,6 @@ function ProductPreview() {
   )
 }
 
-const FEATURES: { title: string; body: string; icon: React.ReactNode; wide?: boolean }[] = [
-  { title: 'MRR, movement & ARR bridge', wide: true, body: 'New, expansion, contraction, churn and reactivation — reconciled month by month into a bridge you can hand to a board.', icon: <><path d="M2 12.5l4-4 3 3 5-6.5" /><path d="M10.5 5H14v3.5" /></> },
-  { title: 'Cohorts & retention', body: 'NRR, GRR and logo retention by acquisition cohort, with heatmaps and a retention lab.', icon: <><path d="M8 1.5 14 4.5 8 7.5 2 4.5z" /><path d="M2 8 8 11l6-3" /><path d="M2 11.5 8 14.5l6-3" /></> },
-  { title: 'Forecast & pipeline', body: 'Project MRR forward and track pipeline alongside booked revenue.', icon: <><path d="M2 12h12" /><path d="M3 10l3-4 3 2 4-5" strokeDasharray="2 2" /></> },
-  { title: 'Alerts & data quality', wide: true, body: 'Anomalies are flagged automatically, and bad rows can be fixed before they skew a single metric.', icon: <><path d="M8 2.5 14 13H2z" /><path d="M8 6.5v3M8 11.1v.4" /></> },
-  { title: 'Board pack & present mode', wide: true, body: 'A one-screen executive briefing, a board pack, and a distraction-free present mode. Export to PDF.', icon: <><rect x="2" y="3" width="12" height="8.5" rx="1.2" /><path d="M8 11.5V14M5.5 14h5" /></> },
-  { title: 'Share, Stripe & Trust pages', body: 'Share a read-only link that carries the data inside the URL. Or connect Stripe in Workspace and publish a public Trust page.', icon: <><path d="M6.5 9.5a3 3 0 0 0 4.2 0l2-2a3 3 0 0 0-4.2-4.2l-.6.6" /><path d="M9.5 6.5a3 3 0 0 0-4.2 0l-2 2a3 3 0 0 0 4.2 4.2l.6-.6" /></> },
-]
-
 const STEPS = [
   { t: 'Drop a file', b: 'Any CSV or Excel export of payment rows — one row per charge or invoice.' },
   { t: 'Confirm the mapping', b: 'Columns auto-detect. Set a date format and FX rates if you bill in several currencies.' },
@@ -135,6 +128,7 @@ const STEPS = [
 ]
 
 export function Landing() {
+  const d = landingData()
   return (
     <div className="min-h-screen">
       <ShareRedirect />
@@ -190,6 +184,8 @@ export function Landing() {
         <p className="mt-3 text-center text-[12.5px] text-ink-faint">Live preview — numbers computed on this page from the bundled sample dataset.</p>
       </section>
 
+      <MetricTicker metrics={d.metrics} />
+
       {/* Stat strip */}
       <section className="mx-auto mt-20 max-w-6xl px-6">
         <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4" style={{ gap: 1 }}>
@@ -207,26 +203,7 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="mx-auto mt-28 max-w-6xl scroll-mt-20 px-6">
-        <div className="max-w-2xl">
-          <div className="text-[13px] font-semibold text-accent">Everything a finance team asks for</div>
-          <h2 className="mt-2 text-[clamp(2rem,3.6vw,2.75rem)] font-semibold leading-[1.08] tracking-[-0.04em] text-ink">
-            From raw rows to the <span className="font-serif font-normal italic text-accent">numbers that matter.</span>
-          </h2>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className={`group rounded-2xl border border-line bg-paper p-6 shadow-card transition-shadow hover:shadow-pop ${f.wide ? 'md:col-span-2' : ''}`}>
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-navy text-accent transition-transform group-hover:-translate-y-0.5">
-                <Ico size={18} d={f.icon} />
-              </span>
-              <h3 className="mt-5 text-[16px] font-semibold tracking-[-0.015em] text-ink">{f.title}</h3>
-              <p className="mt-1.5 max-w-md text-[14px] leading-relaxed text-ink-soft">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <Showcase d={d} />
 
       {/* How it works */}
       <section id="how" className="mx-auto mt-28 max-w-6xl scroll-mt-20 px-6">

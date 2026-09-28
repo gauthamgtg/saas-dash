@@ -1,10 +1,11 @@
 'use client'
-import { createContext, useContext, useEffect, useMemo, useReducer, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { STORAGE_KEY } from './keys'
 import { hasPendingFile } from '@/src/lib/pendingImport'
 import { sampleTransactions } from '@/src/lib/sampleData'
 import type { Transaction, Controls, BinDef } from '@/src/lib/types'
-import { DEFAULT_BINS } from '@/src/lib/types'
+import { DEFAULT_BINS, DEFAULT_CONTROLS } from '@/src/lib/types'
+import { NAV_ITEMS } from '@/src/lib/nav'
 import type { Mapping } from '@/src/lib/mapping'
 import type { FxRates } from '@/src/lib/fx'
 import type { BlockingIssue } from '@/src/lib/normalize'
@@ -57,10 +58,6 @@ type State = {
   cashOnHand: number | null
 }
 
-const DEFAULT_CONTROLS: Controls = {
-  mode: 'activity', includeRefunds: true, reactivationGapK: 1,
-  dormancyDays: 90, atRiskStreak: 3, grossMargin: 0.8, comparePeriod: 'yoy',
-}
 
 const DEFAULT_WORKSPACE: Workspace = { name: 'My company', role: 'founder' }
 const DEFAULT_CONNECTORS: ConnectorStatus = {
@@ -188,7 +185,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial)
   // read during render: the importer's own effect (a child) consumes the file before ours runs
   const [importing] = useState(hasPendingFile)
+  const booted = useRef(false) // StrictMode re-runs effects; the boot below consumes the URL, so run it once
   useEffect(() => {
+    if (booted.current) return
+    booted.current = true
     const hash = window.location.hash
     if (hash.startsWith('#s=')) {
       decodeShare(hash.slice(3)).then((p) => {
@@ -211,6 +211,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (params.get('demo') === '1') {
       window.history.replaceState(null, '', window.location.pathname)
       dispatch({ type: 'setData', transactions: sampleTransactions(), issues: [], resolvedDateOrder: 'mdy' })
+      const view = NAV_ITEMS.find((it) => it.id === params.get('view'))?.id // deep link from a landing card
+      if (view) dispatch({ type: 'setView', view })
       return
     }
     if (importing) return
