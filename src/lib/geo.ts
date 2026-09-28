@@ -78,42 +78,26 @@ export function currencyExposure(txs: Transaction[], lastMonth: string) {
   return { base, rows, foreign, foreignShare: total ? foreign / total : 0 }
 }
 
-// Approximate country centroids [lat, lon] for the tile map. Aliases share coordinates.
+// Export spellings → Natural Earth (world-atlas 110m) names, lowercased.
+const ATLAS_ALIAS: Record<string, string> = {
+  usa: 'united states of america', us: 'united states of america', 'united states': 'united states of america', america: 'united states of america',
+  uk: 'united kingdom', 'great britain': 'united kingdom', england: 'united kingdom', scotland: 'united kingdom', wales: 'united kingdom',
+  uae: 'united arab emirates', 'czech republic': 'czechia', korea: 'south korea', 'republic of korea': 'south korea',
+  'dominican republic': 'dominican rep.', 'ivory coast': "côte d'ivoire", "cote d'ivoire": "côte d'ivoire",
+  'bosnia and herzegovina': 'bosnia and herz.', drc: 'dem. rep. congo', 'democratic republic of the congo': 'dem. rep. congo',
+  'central african republic': 'central african rep.', 'north macedonia': 'macedonia', swaziland: 'eswatini',
+  'russian federation': 'russia', 'viet nam': 'vietnam', holland: 'netherlands', 'the netherlands': 'netherlands',
+  türkiye: 'turkey', turkiye: 'turkey', 'south sudan': 's. sudan', 'solomon islands': 'solomon is.', 'equatorial guinea': 'eq. guinea',
+}
+/** Key used to join a market to a world-atlas country shape. */
+export const atlasKey = (country: string) => { const k = country.trim().toLowerCase(); return ATLAS_ALIAS[k] ?? k }
+
+// Centroids [lat, lon] for countries too small for the 110m atlas (drawn as dots instead).
 const C: [string[], number, number][] = [
-  [['united states', 'usa', 'us', 'united states of america'], 39, -98], [['canada'], 58, -100], [['mexico'], 23, -102],
-  [['brazil'], -10, -52], [['argentina'], -36, -64], [['chile'], -33, -71], [['colombia'], 4, -73], [['peru'], -10, -76],
-  [['united kingdom', 'uk', 'great britain', 'england'], 54, -2], [['ireland'], 53, -8], [['france'], 46, 2], [['spain'], 40, -4],
-  [['portugal'], 39, -8], [['germany'], 51, 10], [['netherlands'], 52, 5], [['belgium'], 50.5, 4.5], [['switzerland'], 47, 8],
-  [['italy'], 42, 12], [['austria'], 47.5, 14], [['poland'], 52, 19], [['sweden'], 62, 16], [['norway'], 64, 11],
-  [['denmark'], 56, 10], [['finland'], 64, 26], [['ukraine'], 49, 32], [['russia'], 60, 90], [['turkey'], 39, 35],
-  [['israel'], 31, 35], [['egypt'], 26, 30], [['saudi arabia'], 24, 45], [['united arab emirates', 'uae'], 24, 54],
-  [['nigeria'], 9, 8], [['kenya'], 0, 38], [['south africa'], -30, 25], [['india'], 21, 78], [['pakistan'], 30, 70],
-  [['china'], 35, 104], [['japan'], 36, 138], [['south korea'], 36, 128], [['vietnam'], 16, 107], [['thailand'], 15, 101],
-  [['malaysia'], 3.5, 102], [['singapore'], 1.3, 104], [['indonesia'], -2, 118], [['philippines'], 12, 122],
-  [['australia'], -25, 134], [['new zealand'], -41, 174],
+  [['singapore'], 1.35, 103.8], [['hong kong'], 22.3, 114.2], [['malta'], 35.9, 14.4], [['bahrain'], 26.0, 50.55],
+  [['mauritius'], -20.3, 57.6], [['monaco'], 43.73, 7.42], [['andorra'], 42.5, 1.5], [['liechtenstein'], 47.16, 9.55],
+  [['barbados'], 13.19, -59.54], [['maldives'], 3.2, 73.2], [['seychelles'], -4.68, 55.49], [['macau', 'macao'], 22.2, 113.55],
 ]
 const LOOKUP = new Map(C.flatMap(([names, lat, lon]) => names.map((n) => [n, { name: names[0], lat, lon }] as const)))
+/** Centroid for small countries missing from the atlas; null otherwise. */
 export const geoOf = (country: string) => LOOKUP.get(country.trim().toLowerCase()) ?? null
-
-export type Tile = { name: string; col: number; row: number }
-/**
- * Equirectangular projection onto a coarse grid, nudging collisions to the nearest free cell.
- * ponytail: a stylised tile map instead of shipping country polygons.
- */
-export function tileLayout(cols = 30, rows = 14): Tile[] {
-  const taken = new Set<string>()
-  const out: Tile[] = []
-  for (const [names, lat, lon] of C) {
-    const c0 = Math.round(((lon + 180) / 360) * (cols - 1)), r0 = Math.round(((75 - lat) / 125) * (rows - 1))
-    let placed = false
-    for (let d = 0; d < 6 && !placed; d++) {
-      for (const [dc, dr] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
-        const col = c0 + dc * d, row = r0 + dr * d, k = `${col},${row}`
-        if (d === 0 && (dc || dr)) continue
-        if (col < 0 || row < 0 || col >= cols || row >= rows || taken.has(k)) continue
-        taken.add(k); out.push({ name: names[0], col, row }); placed = true; break
-      }
-    }
-  }
-  return out
-}

@@ -20,9 +20,14 @@ const REGIONS: Record<string, string[]> = {
 const CCY_BY_REGION: Record<string, string> = { 'North America': 'USD', Europe: 'EUR', APAC: 'INR', LATAM: 'USD' }
 const RATE: Record<string, number> = { USD: 1, EUR: 1.08, GBP: 1.27, INR: 0.012 }
 const MODELS = ['Self-Serve', 'SMB', 'Enterprise', 'Marketplace']
-const PLAN_BY_MODEL: Record<string, string> = {
-  'Self-Serve': 'Starter $220/mo', SMB: 'Growth $700/mo', Marketplace: 'Scale $1,400/mo', Enterprise: 'Enterprise $2,600/mo',
-}
+// Plan ladder — accounts start on their model's plan and can upgrade / downgrade over time.
+const PLANS = ['Starter', 'Growth', 'Scale', 'Enterprise']
+const PLAN_IDX_BY_MODEL: Record<string, number> = { 'Self-Serve': 0, SMB: 1, Marketplace: 2, Enterprise: 3 }
+// List-price changes baked into the demo so the price-change detector has something real to find.
+const PRICE_CHANGES: { plan: string; month: string; factor: number }[] = [
+  { plan: 'Growth', month: '2025-11', factor: 1.12 },
+  { plan: 'Starter', month: '2026-03', factor: 1.08 },
+]
 const REPS = ['Ava Chen', 'Marcus Reid', 'Priya Nair', 'Diego Torres', 'Sofia Berg', 'Self-serve (no rep)']
 const PREFIX = ['Nova', 'Apex', 'Orbit', 'Vertex', 'Lumen', 'Quanta', 'Delta', 'Helix', 'Cobalt', 'Sable', 'Terra', 'Vela', 'Astra', 'Onyx', 'Flux', 'Zenith', 'Meridian', 'Halcyon', 'Cinder', 'Pallas']
 const SUFFIX = ['Labs', 'Systems', 'Group', 'Digital', 'Cloud', 'Works', 'Analytics', 'Retail', 'Health', 'Foods', 'Capital', 'Logistics']
@@ -55,7 +60,7 @@ export function sampleTransactions(): Transaction[] {
     const currency = model === 'Enterprise' && region === 'Europe' ? 'GBP' : CCY_BY_REGION[region]
     const name = `${pick(PREFIX)} ${pick(SUFFIX)}`
     const customerId = `C${String(c + 1).padStart(3, '0')}`
-    const plan = PLAN_BY_MODEL[model]
+    let planIdx = PLAN_IDX_BY_MODEL[model]
     // self-serve accounts mostly have no rep; sold accounts get a stable owner
     const salesRep = model === 'Self-Serve' && rand() < 0.7 ? 'Self-serve (no rep)' : pick(REPS.slice(0, 5))
     // Enterprise pays more; self-serve less. Base monthly revenue in USD.
@@ -73,13 +78,22 @@ export function sampleTransactions(): Transaction[] {
         if (i - churnedAt >= 2 && rand() < 0.06) { alive = true; base = Math.round(base * 0.9) }
         else continue
       }
-      // expansion / contraction drift
-      if (rand() < expand) base = Math.round(base * (1.05 + rand() * 0.25))
-      else if (rand() < 0.05) base = Math.round(base * (0.75 + rand() * 0.15))
+      const month = months[i]
+      const priceChange = PRICE_CHANGES.find((pc) => pc.month === month && pc.plan === PLANS[planIdx])
+      if (priceChange && i > startIdx) {
+        // list price move replaces this month's organic drift for everyone on the plan
+        base = Math.round(base * priceChange.factor)
+      } else if (rand() < expand) {
+        base = Math.round(base * (1.05 + rand() * 0.25))
+        if (rand() < 0.3 && planIdx < PLANS.length - 1) { planIdx++; base = Math.round(base * 1.15) } // upgrade
+      } else if (rand() < 0.05) {
+        base = Math.round(base * (0.75 + rand() * 0.15))
+        if (rand() < 0.45 && planIdx > 0) planIdx-- // downgrade
+      }
+      const plan = PLANS[planIdx]
 
       const amountBase = base
       const rate = RATE[currency] ?? 1
-      const month = months[i]
       const day = 1 + Math.floor(rand() * 26)
       const date = new Date(`${month}-${String(day).padStart(2, '0')}T00:00:00Z`)
       const invoiceNumber = `INV-${inv++}`
@@ -96,8 +110,9 @@ export function sampleTransactions(): Transaction[] {
           businessModel: model, plan, salesRep, currency, amountNative: -Math.round(amountBase / rate), amountBase: -amountBase, isRefund: true,
         })
       }
-      // churn check
-      if (rand() < monthlyChurn) { alive = false; churnedAt = i }
+      // churn check — price increases lift churn on the affected plan for the next quarter
+      const recentHike = PRICE_CHANGES.some((pc) => pc.plan === plan && pc.month <= month && month < addMonths(pc.month, 3))
+      if (rand() < monthlyChurn * (recentHike ? 2.2 : 1)) { alive = false; churnedAt = i }
     }
   }
   return txs

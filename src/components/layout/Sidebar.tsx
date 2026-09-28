@@ -40,6 +40,8 @@ const ICONS: Record<ViewId, React.ReactNode> = {
   churnwarn: I(<><path d="M8 1.5 2.5 4v4c0 3.2 2.4 5.6 5.5 6.5 3.1-.9 5.5-3.3 5.5-6.5V4z" /><path d="M8 5v3.5M8 10.8v.4" /></>),
   expansion: I(<><circle cx="8" cy="8" r="6" /><circle cx="8" cy="8" r="3" /><path d="M8 8l4.2-4.2" /></>),
   geo: I(<><circle cx="8" cy="8" r="6" /><path d="M2 8h12" /><path d="M8 2c1.8 1.7 2.7 3.7 2.7 6S9.8 12.3 8 14c-1.8-1.7-2.7-3.7-2.7-6S6.2 3.7 8 2z" /></>),
+  pricing: I(<><path d="M8.6 1.5H13a1.5 1.5 0 0 1 1.5 1.5v4.4a1 1 0 0 1-.3.7l-6.6 6.6a1 1 0 0 1-1.4 0L1.8 10.3a1 1 0 0 1 0-1.4l6.1-6.1a1 1 0 0 1 .7-.3z" /><circle cx="11" cy="5" r="1" /></>),
+  migrations: I(<><path d="M2 4h5c2 0 2 8 4 8h3" /><path d="M2 12h5c1 0 1.5-2 2-4" /><path d="m12 10 2 2-2 2" /></>),
   connectors: I(<><path d="M6 4.5H4.5a2 2 0 0 0 0 4H6" /><path d="M10 7.5h1.5a2 2 0 0 1 0 4H10" /><path d="M6 6.5h4" /></>),
 }
 
@@ -72,6 +74,8 @@ export const NAV_ITEMS: { id: ViewId; label: string; group: string }[] = [
   { id: 'unitecon', label: 'Unit Economics', group: 'Analysis' },
   { id: 'efficiency', label: 'Efficiency Lab', group: 'Analysis' },
   { id: 'product', label: 'Product & Deferred', group: 'Analysis' },
+  { id: 'pricing', label: 'Price Changes', group: 'Analysis' },
+  { id: 'migrations', label: 'Plan Migrations', group: 'Analysis' },
   { id: 'collections', label: 'Cash Calendar', group: 'Analysis' },
   { id: 'connectors', label: 'Workspace', group: 'Platform' },
 ]

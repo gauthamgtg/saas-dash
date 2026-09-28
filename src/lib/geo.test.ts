@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { tx } from './testdata'
-import { marketStats, baseCurrency, currencyExposure, tileLayout, geoOf } from './geo'
+import { marketStats, baseCurrency, currencyExposure, atlasKey, geoOf } from './geo'
 
 const txs = [
   // US: one account growing 100 → 200 over Jan..Jul
@@ -28,10 +28,11 @@ describe('geo', () => {
     expect(fx.foreign).toBe(165)
     expect(fx.foreignShare).toBeCloseTo(165 / 365)
   })
-  it('lays out a tile map with no two countries on one cell', () => {
-    const t = tileLayout()
-    expect(new Set(t.map((x) => `${x.col},${x.row}`)).size).toBe(t.length)
-    expect(t.length).toBeGreaterThan(40)
-    expect(geoOf('USA')?.name).toBe('united states')
+  it('maps export spellings onto atlas names, small countries onto centroids', () => {
+    expect(atlasKey('USA')).toBe('united states of america')
+    expect(atlasKey(' Germany ')).toBe('germany')
+    expect(atlasKey('Czech Republic')).toBe('czechia')
+    expect(geoOf('Singapore')?.lat).toBeCloseTo(1.35)
+    expect(geoOf('Germany')).toBeNull()
   })
 })

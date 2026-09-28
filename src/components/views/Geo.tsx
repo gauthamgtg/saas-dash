@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell, LabelList } from 'recharts'
 import { useApp } from '@/src/state/AppContext'
 import { applyFilters } from '@/src/lib/dashboard'
-import { marketStats, currencyExposure, tileLayout, geoOf, type GeoDim, type MarketRow } from '@/src/lib/geo'
+import { marketStats, currencyExposure, atlasKey, geoOf, type GeoDim, type MarketRow } from '@/src/lib/geo'
 import { monthDiff } from '@/src/lib/types'
 import { flag } from '@/src/lib/flags'
 import { ViewHeader } from '@/src/components/ui/ViewHeader'
@@ -12,6 +12,8 @@ import { KpiCard } from '@/src/components/ui/KpiCard'
 import { BarsChart } from '@/src/components/ui/BarsChart'
 import { Sparkline } from '@/src/components/ui/Sparkline'
 import { Callout } from '@/src/components/ui/Callout'
+import { WorldMap, type MapDatum } from '@/src/components/ui/WorldMap'
+import { HeatGrid, seqCell, divCell } from '@/src/components/ui/HeatGrid'
 import { CHART } from '@/src/lib/theme'
 import { fmtMoney, fmtMoneyShort, fmtNum, fmtPct } from '@/src/lib/format'
 
@@ -19,19 +21,15 @@ const KSTRIP = 'grid grid-cols-2 gap-px overflow-hidden rounded-2xl border borde
 const TRACK = 'inline-flex h-8 items-center rounded-lg border border-line bg-paper-2 p-0.5'
 const SEG = 'h-full rounded-[6px] px-2.5 text-[12px] font-medium transition-all'
 const segCls = (on: boolean) => `${SEG} ${on ? 'bg-paper text-ink shadow-card' : 'text-ink-soft hover:text-ink'}`
-const COLS = 30, ROWS = 14, TILE = 26, GAP = 3
 type Metric = 'share' | 'growth' | 'nrr'
 type SortKey = 'mrr' | 'growth' | 'nrr' | 'churn' | 'arpa' | 'customers' | 'newLogos'
+type HeatMode = 'mrr' | 'mom'
 
-/** Diverging fill around a neutral point; share uses a single accent ramp. */
-function tileFill(metric: Metric, r: MarketRow | undefined, maxShare: number) {
-  if (!r) return 'var(--paper-2)'
-  if (metric === 'share') return `color-mix(in srgb, var(--accent) ${20 + (r.share / (maxShare || 1)) * 80}%, var(--paper))`
+/** Map fill: accent ramp for share, diverging pos/neg for growth and NRR (±8%/mo, ±25pp saturate). */
+function mapFill(metric: Metric, r: MarketRow, maxShare: number) {
+  if (metric === 'share') return seqCell(0.15 + (r.share / (maxShare || 1)) * 0.85).bg
   const v = metric === 'growth' ? r.growth : r.nrr != null ? r.nrr - 1 : null
-  if (v == null) return 'color-mix(in srgb, var(--ink-faint) 30%, var(--paper))'
-  const scale = metric === 'growth' ? 0.08 : 0.25 // ±8%/mo growth, ±25pp NRR saturates
-  const k = Math.min(1, Math.abs(v) / scale)
-  return `color-mix(in srgb, var(${v >= 0 ? '--pos' : '--neg'}) ${25 + k * 70}%, var(--paper))`
+  return v == null ? 'color-mix(in srgb, var(--ink-faint) 30%, var(--paper))' : divCell(v, metric === 'growth' ? 0.08 : 0.25).bg
 }
 
 const QUAD = (growth: number, nrr: number, gMid: number) =>
@@ -48,6 +46,7 @@ export function Geo() {
   const [metric, setMetric] = useState<Metric>('share')
   const [sort, setSort] = useState<SortKey>('mrr')
   const [hover, setHover] = useState<string | null>(null)
+  const [heat, setHeat] = useState<HeatMode>('mom')
 
   const d = useMemo(() => {
     const { months, rows } = marketStats(txs, dim, state.controls.mode)
@@ -63,20 +62,18 @@ export function Geo() {
       if (rows.length > 5) row.Other = other
       return row
     })
-    const byCountry = new Map(countries.map((r) => [geoOf(r.key)?.name ?? r.key.toLowerCase(), r]))
-    const unmapped = countries.filter((r) => !geoOf(r.key))
+    const byCountry = new Map(countries.map((r) => [atlasKey(r.key), r]))
     const withGrowth = rows.filter((r) => r.growth != null && r.mrr > 0)
     const gMid = withGrowth.length ? [...withGrowth].sort((a, b) => a.growth! - b.growth!)[Math.floor(withGrowth.length / 2)].growth! : 0
     const fastest = [...withGrowth].sort((a, b) => b.growth! - a.growth!)[0]
     return {
-      months, rows, last, top, stack, byCountry, unmapped, gMid, fastest,
+      months, rows, last, countries, top, stack, byCountry, gMid, fastest,
       fx: last ? currencyExposure(txs, last) : null,
       live: rows.filter((r) => r.mrr > 0),
       maxShare: Math.max(0, ...countries.map((r) => r.share)),
     }
   }, [txs, dim, state.controls.mode, hasCountry])
 
-  const tiles = useMemo(() => tileLayout(COLS, ROWS), [])
 
   if (!d.rows.length || (!hasCountry && !hasRegion)) {
     return (
@@ -88,6 +85,11 @@ export function Geo() {
 
   const sorted = [...d.rows].sort((a, b) => ((b[sort] ?? -Infinity) as number) - ((a[sort] ?? -Infinity) as number))
   const hovered = hover ? d.byCountry.get(hover) : undefined
+  const mapValues = new Map<string, MapDatum>(d.countries.map((r) => [atlasKey(r.key), { label: r.key, fill: mapFill(metric, r, d.maxShare), title: `${r.key}: ${fmtMoney(r.mrr)} MRR · ${fmtPct(r.share)}` }]))
+  const points = d.countries.flatMap((r) => { const g = geoOf(r.key); return g ? [{ key: atlasKey(r.key), lat: g.lat, lon: g.lon, fill: mapFill(metric, r, d.maxShare), title: `${r.key}: ${fmtMoney(r.mrr)} MRR` }] : [] })
+  const heatCols = d.months.slice(-12)
+  const heatRows = d.rows.slice(0, 12)
+  const heatMax = Math.max(1, ...heatRows.flatMap((r) => r.spark.slice(-12)))
   const topRow = d.live[0]
   const sensitivity = d.fx ? d.fx.foreign * 0.1 : 0
 
@@ -119,26 +121,13 @@ export function Geo() {
         <Panel title="World map" sub={metric === 'share' ? 'Share of current MRR' : metric === 'growth' ? 'Monthly MRR growth, trailing 6 months' : 'Net revenue retention, trailing 12 months'}
           right={<div className={TRACK}>{(['share', 'growth', 'nrr'] as const).map((k) => <button key={k} onClick={() => setMetric(k)} className={segCls(metric === k)}>{k === 'share' ? 'MRR share' : k === 'growth' ? 'Growth' : 'NRR'}</button>)}</div>}>
           <div className="grid gap-5 lg:grid-cols-[1fr_240px]">
-            <div className="overflow-x-auto">
-              <svg width={COLS * (TILE + GAP)} height={ROWS * (TILE + GAP)} role="img" aria-label="World tile map of revenue by country" onMouseLeave={() => setHover(null)} className="mx-auto block">
-                {tiles.map((t) => {
-                  const r = d.byCountry.get(t.name)
-                  return (
-                    <g key={t.name} transform={`translate(${t.col * (TILE + GAP)},${t.row * (TILE + GAP)})`} onMouseEnter={() => r && setHover(t.name)} className={r ? 'cursor-pointer' : ''}>
-                      <rect width={TILE} height={TILE} rx={6} fill={tileFill(metric, r, d.maxShare)}
-                        stroke={hover === t.name ? 'var(--ink)' : r ? 'color-mix(in srgb, var(--ink) 12%, transparent)' : 'none'} strokeWidth={hover === t.name ? 1.5 : 1} />
-                      {r && <text x={TILE / 2} y={TILE / 2 + 5} textAnchor="middle" fontSize="14">{flag(r.key)}</text>}
-                      <title>{r ? `${r.key}: ${fmtMoney(r.mrr)} MRR · ${fmtPct(r.share)}` : t.name}</title>
-                    </g>
-                  )
-                })}
-              </svg>
+            <div>
+              <WorldMap values={mapValues} points={points} hovered={hover} onHover={setHover} />
               <div className="mt-3 flex flex-wrap items-center gap-3 text-[11.5px] text-ink-faint">
                 {metric === 'share' ? <>Less {[20, 45, 70, 100].map((p) => <span key={p} className="h-3 w-5 rounded-[3px]" style={{ background: `color-mix(in srgb, var(--accent) ${p}%, var(--paper))` }} />)} More</>
                   : <><span className="h-3 w-5 rounded-[3px]" style={{ background: 'color-mix(in srgb, var(--neg) 80%, var(--paper))' }} />{metric === 'growth' ? 'Shrinking' : '< 100%'}
                     <span className="h-3 w-5 rounded-[3px]" style={{ background: 'color-mix(in srgb, var(--ink-faint) 30%, var(--paper))' }} />n/a
                     <span className="h-3 w-5 rounded-[3px]" style={{ background: 'color-mix(in srgb, var(--pos) 80%, var(--paper))' }} />{metric === 'growth' ? 'Growing' : '> 100%'}</>}
-                {d.unmapped.length > 0 && <span className="ml-auto">Not on map: {d.unmapped.map((u) => u.key).join(', ')}</span>}
               </div>
             </div>
             <div className="rounded-xl border border-line bg-paper-2 p-4">
@@ -153,11 +142,25 @@ export function Geo() {
                   </dl>
                   <div className="mt-3"><Sparkline data={hovered.spark.slice(-12)} w={200} h={36} /></div>
                 </>
-              ) : <p className="text-[13px] leading-relaxed text-ink-faint">Hover a country for its numbers. Tiles are placed by rough position — a stylised map, not to scale.</p>}
+              ) : <p className="text-[13px] leading-relaxed text-ink-faint">Hover a highlighted country for its numbers. Small countries appear as dots.</p>}
             </div>
           </div>
         </Panel>
       )}
+
+      <Panel title="Market heatmap" sub={heat === 'mom' ? 'Month-over-month MRR change per market · last 12 months' : 'MRR per market · last 12 months, darker = more'}
+        right={<div className={TRACK}>{(['mom', 'mrr'] as const).map((k) => <button key={k} onClick={() => setHeat(k)} className={segCls(heat === k)}>{k === 'mom' ? 'MoM change' : 'MRR'}</button>)}</div>}>
+        <HeatGrid rows={heatRows.map((r) => r.key)} cols={heatCols} corner={dim === 'country' ? 'Country' : 'Region'} minCol={52}
+          rowLabel={(k) => <span className="flex items-center gap-1.5">{dim === 'country' && <span>{flag(k)}</span>}{k}</span>}
+          colLabel={(c) => new Date(`${c}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short' }) + (c.endsWith('-01') ? ` ’${c.slice(2, 4)}` : '')}
+          cell={(k, c) => {
+            const r = heatRows.find((x) => x.key === k)!, i = d.months.indexOf(c), v = r.spark[i], p = r.spark[i - 1]
+            if (heat === 'mrr') return v ? { text: fmtMoneyShort(v).replace('$', ''), color: seqCell(v / heatMax) } : null
+            const ch = p ? (v - p) / p : null
+            return ch == null ? (v ? { text: 'new', color: divCell(1, 1) } : null) : { text: `${ch >= 0 ? '+' : ''}${Math.round(ch * 100)}%`, color: divCell(ch, 0.2) }
+          }}
+          detail={(k, c) => { const r = heatRows.find((x) => x.key === k)!, i = d.months.indexOf(c); return `${k} · ${c}: ${fmtMoney(r.spark[i])} MRR${i > 0 ? ` (was ${fmtMoney(r.spark[i - 1])})` : ''}` }} />
+      </Panel>
 
       <Panel title="Market scorecard" sub="Click a column to sort · growth is compound monthly over the last 6 months"
         bodyClass="overflow-x-auto"

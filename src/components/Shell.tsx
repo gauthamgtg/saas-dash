@@ -34,6 +34,8 @@ import { InvestorUpdate } from '@/src/components/views/InvestorUpdate'
 import { Collections } from '@/src/components/views/Collections'
 import { ChurnWarning, ExpansionRadar } from '@/src/components/views/Signals'
 import { Geo } from '@/src/components/views/Geo'
+import { PriceChanges } from '@/src/components/views/PriceChanges'
+import { PlanMigrations } from '@/src/components/views/PlanMigrations'
 import { CommandPalette } from '@/src/components/CommandPalette'
 
 export function Shell() {
@@ -50,6 +52,7 @@ export function Shell() {
     product: <ProductLab />, connectors: <Connectors />,
     goals: <Goals />, update: <InvestorUpdate />, collections: <Collections />,
     churnwarn: <ChurnWarning />, expansion: <ExpansionRadar />, geo: <Geo />,
+    pricing: <PriceChanges />, migrations: <PlanMigrations />,
   }[state.view]
 
   if (state.present) {
