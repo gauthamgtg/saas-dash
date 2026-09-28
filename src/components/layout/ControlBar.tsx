@@ -50,6 +50,8 @@ export function ControlBar() {
   const regions = useMemo(() => dimensionValues(txs, 'region'), [txs])
   const models = useMemo(() => dimensionValues(txs, 'businessModel'), [txs])
   const currencies = useMemo(() => dimensionValues(txs, 'currency'), [txs])
+  // only offered when the upload mapped an acquisition source column
+  const sources = useMemo(() => (txs.some((t) => t.source) ? dimensionValues(txs, 'source') : []), [txs])
 
   const multi = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
 
@@ -68,7 +70,7 @@ export function ControlBar() {
   const activePreset = presets.find((p) => state.range.start === p.start && state.range.end === null)?.id
   const c = state.controls
   const item = NAV_ITEMS.find((it) => it.id === state.view)
-  const activeFilters = state.filters.regions.length + state.filters.businessModels.length + state.filters.currencies.length
+  const activeFilters = state.filters.regions.length + state.filters.businessModels.length + state.filters.currencies.length + (state.filters.sources?.length ?? 0)
 
   return (
     <div className="no-print sticky top-0 z-10 border-b border-line bg-bone/85 backdrop-blur-xl">
@@ -149,14 +151,14 @@ export function ControlBar() {
         </summary>
         <div className="absolute z-20 mt-1.5 flex max-h-80 w-max gap-1 overflow-auto rounded-lg border border-line bg-paper p-1.5 text-[13px] shadow-pop">
           {([
-            ['Region', regions, 'regions'], ['Model', models, 'businessModels'], ['Currency', currencies, 'currencies'],
+            ['Region', regions, 'regions'], ['Model', models, 'businessModels'], ['Currency', currencies, 'currencies'], ['Source', sources, 'sources'],
           ] as const).filter(([, vals]) => vals.length > 0).map(([title, vals, key]) => (
             <div key={key} className="min-w-[9rem]">
               <div className="px-2 pb-1 pt-1 text-[11px] font-medium text-ink-faint">{title}</div>
               {vals.map((r) => (
                 <label key={r} className="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-md px-2 py-1 hover:bg-paper-2">
-                  <input type="checkbox" className="accent-accent" checked={state.filters[key].includes(r)}
-                    onChange={() => dispatch({ type: 'setFilters', filters: { [key]: multi(state.filters[key], r) } })} />{r}
+                  <input type="checkbox" className="accent-accent" checked={(state.filters[key] ?? []).includes(r)}
+                    onChange={() => dispatch({ type: 'setFilters', filters: { [key]: multi(state.filters[key] ?? [], r) } })} />{r}
                 </label>
               ))}
             </div>

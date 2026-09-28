@@ -3,9 +3,10 @@ import { buildMatrix, mrrOf, activeCustomers } from './engine/matrix'
 import { arr, arpa, logoChurnRate, avgLifetimeMonths } from './engine/kpis'
 import { addMonths } from './types'
 
-export type Filters = { regions: string[]; businessModels: string[]; currencies: string[] }
+// sources optional: saved state and share links from before the field existed still load
+export type Filters = { regions: string[]; businessModels: string[]; currencies: string[]; sources?: string[] }
 export type DateRange = { start: string | null; end: string | null }
-type DimKey = 'region' | 'country' | 'businessModel' | 'currency' | 'plan' | 'salesRep'
+type DimKey = 'region' | 'country' | 'businessModel' | 'currency' | 'plan' | 'salesRep' | 'source'
 
 /** includeRefunds defaults true so callers that omit it (e.g. tests) keep the old gross-of-refunds behavior. */
 export function applyFilters(txs: Transaction[], f: Filters, range: DateRange, includeRefunds = true): Transaction[] {
@@ -14,6 +15,7 @@ export function applyFilters(txs: Transaction[], f: Filters, range: DateRange, i
     if (f.regions.length && !f.regions.includes(t.region ?? 'Unknown')) return false
     if (f.businessModels.length && !f.businessModels.includes(t.businessModel ?? 'Unknown')) return false
     if (f.currencies.length && !f.currencies.includes(t.currency ?? 'Unknown')) return false
+    if (f.sources?.length && !f.sources.includes(t.source ?? 'Unknown')) return false
     if (range.start && t.month < range.start) return false
     if (range.end && t.month > range.end) return false
     return true

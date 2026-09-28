@@ -67,7 +67,7 @@ const DEFAULT_CONNECTORS: ConnectorStatus = {
 const initial: State = {
   parsed: null, mapping: null, fxRates: {}, transactions: null, spend: null, pipeline: null, issues: [],
   resolvedDateOrder: null, dismissedWarningIds: [], dismissedAlertIds: [],
-  controls: DEFAULT_CONTROLS, filters: { regions: [], businessModels: [], currencies: [] },
+  controls: DEFAULT_CONTROLS, filters: { regions: [], businessModels: [], currencies: [], sources: [] },
   range: { start: null, end: null }, bins: DEFAULT_BINS, view: 'briefing', present: false,
   workspace: DEFAULT_WORKSPACE, connectors: DEFAULT_CONNECTORS, cashOnHand: null,
 }

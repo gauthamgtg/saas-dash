@@ -14,6 +14,12 @@ describe('applyFilters', () => {
     expect(r.every((t) => t.month >= '2026-02')).toBe(true)
     expect(r.some((t) => t.month === '2026-01')).toBe(false)
   })
+  it('filters by acquisition source, untagged rows as Unknown', () => {
+    const tagged = txs.map((t, i) => ({ ...t, source: i % 2 ? 'Referral' : null }))
+    const f = { regions: [], businessModels: [], currencies: [] }
+    expect(applyFilters(tagged, { ...f, sources: ['Referral'] }, { start: null, end: null }).every((t) => t.source === 'Referral')).toBe(true)
+    expect(applyFilters(tagged, { ...f, sources: ['Unknown'] }, { start: null, end: null }).every((t) => t.source == null)).toBe(true)
+  })
   it('empty filters return all rows', () => {
     expect(applyFilters(txs, { regions: [], businessModels: [], currencies: [] }, { start: null, end: null })).toHaveLength(txs.length)
   })
