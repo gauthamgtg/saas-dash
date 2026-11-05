@@ -131,13 +131,19 @@ type PrismaClientLike = {
 
 let prisma: PrismaClientLike | null = null
 
-async function getPrisma(): Promise<PrismaClientLike | null> {
+export async function getPrisma(): Promise<PrismaClientLike | null> {
   if (!usingPostgres()) return null
   if (prisma) return prisma
   try {
-    const mod = await import('@prisma/client')
+    const [{ PrismaClient }, { PrismaPg }] = await Promise.all([
+      import('@prisma/client'),
+      import('@prisma/adapter-pg'),
+    ])
     const g = globalThis as { __mrrmarkPrisma?: PrismaClientLike }
-    prisma = g.__mrrmarkPrisma ?? new mod.PrismaClient()
+    // Prisma 7 has no bundled engine; a driver adapter is required.
+    prisma = g.__mrrmarkPrisma ?? new PrismaClient({
+      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+    })
     if (process.env.NODE_ENV !== 'production') g.__mrrmarkPrisma = prisma
     return prisma
   } catch (e) {
